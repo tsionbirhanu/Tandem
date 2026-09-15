@@ -71,12 +71,32 @@ if ($activeCategory && array_key_exists($activeCategory, $categories)) {
                 </a>
             <?php endforeach; ?>
         <?php else: ?>
-            <!-- Empty state if filtering yields no results (unlikely with our mock data, but good practice) -->
-            <div class="empty-state" style="grid-column: 1 / -1;">
-                <div class="empty-icon">📂</div>
-                <h3 class="empty-title">No services found</h3>
-                <p class="empty-desc">Try selecting a different category.</p>
-                <a href="services.php" class="btn btn-primary">Clear Filters</a>
+            <!-- Skeleton-style empty state -->
+            <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: var(--space-24);">
+                <div style="text-align: center; margin-bottom: var(--space-16);">
+                    <h3 class="empty-title">No services found</h3>
+                    <p class="empty-desc">Try selecting a different category.</p>
+                    <a href="services.php" class="btn btn-primary" style="margin-top: var(--space-16);">Clear Filters</a>
+                </div>
+                <!-- Faded out skeleton grid as a wireframe background for the empty state -->
+                <div class="sg-grid-2" style="width: 100%; opacity: 0.4; pointer-events: none; max-width: 800px;">
+                    <div class="skeleton-card">
+                        <div class="skeleton skeleton-img"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton skeleton-text" style="width: 30%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 80%; height: 1.5rem; margin: 0.5rem 0;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card" style="display: none;"> <!-- Hidden on mobile via css, but fine for structural demo -->
+                        <div class="skeleton skeleton-img"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton skeleton-text" style="width: 30%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 80%; height: 1.5rem; margin: 0.5rem 0;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

@@ -24,8 +24,13 @@
       justify-content: space-between;
       align-items: center;
       padding: var(--space-16) var(--space-24);
-      background-color: var(--color-bg-surface);
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--color-border);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow-subtle);
     }
     .app-logo {
       font-family: var(--font-heading);
@@ -42,6 +47,7 @@
       color: var(--color-text-neutral);
       text-decoration: none;
       font-weight: 500;
+      transition: color 0.2s ease;
     }
     .nav-links a:hover {
       color: var(--color-primary);
@@ -58,9 +64,12 @@
   <!-- Global Header Navigation -->
   <header class="app-navbar">
     <a href="index.php" class="app-logo">Tandem</a>
-    <nav class="nav-links">
+    <nav class="nav-links" style="align-items: center;">
       <a href="index.php">Home</a>
       <a href="services.php">Services</a>
       <a href="contact.php">Contact</a>
+      <span style="color: var(--color-border);">|</span>
+      <a href="login.php">Log In</a>
+      <a href="register.php" class="btn btn-primary" style="padding: var(--space-8) var(--space-16); color: white;">Sign Up</a>
     </nav>
   </header>

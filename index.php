@@ -13,7 +13,7 @@ include 'includes/header.php';
 <main class="page-main">
     <!-- Hero Section -->
     <section class="sg-header" style="text-align: center; padding: var(--space-64) 0;">
-        <div class="sg-container">
+        <div class="sg-container hero-animated">
             <h1 style="font-size: var(--text-h1);">Find premium talent for your next project.</h1>
             <p style="font-size: var(--text-h5); color: var(--color-text-muted); max-width: 600px; margin: 0 auto var(--space-32) auto;">
                 Tandem is a curated network of top-tier designers, developers, and writers.

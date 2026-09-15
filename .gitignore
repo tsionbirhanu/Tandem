@@ -1,0 +1,16 @@
+# Environment variables & secrets (NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor folders
+.vscode/
+.idea/
+
+# Scratch & temporary logs
+*.log
+scratch/

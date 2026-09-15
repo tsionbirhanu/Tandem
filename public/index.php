@@ -18,6 +18,7 @@ define('BASE_PATH', dirname(__DIR__));
 require_once BASE_PATH . '/includes/Database.php';
 require_once BASE_PATH . '/includes/auth.php';
 require_once BASE_PATH . '/app/Helpers/view.php';
+require_once BASE_PATH . '/app/Helpers/upload.php';
 
 // Require Models
 require_once BASE_PATH . '/app/Models/User.php';
@@ -26,6 +27,7 @@ require_once BASE_PATH . '/app/Models/Freelancer.php';
 require_once BASE_PATH . '/app/Models/Admin.php';
 require_once BASE_PATH . '/app/Models/UserFactory.php';
 require_once BASE_PATH . '/app/Models/Service.php';
+require_once BASE_PATH . '/app/Models/ServiceImage.php';
 require_once BASE_PATH . '/app/Models/Category.php';
 require_once BASE_PATH . '/app/Models/ProjectRequest.php';
 require_once BASE_PATH . '/app/Models/Message.php';
@@ -37,6 +39,7 @@ require_once BASE_PATH . '/app/Controllers/AuthController.php';
 require_once BASE_PATH . '/app/Controllers/ServiceController.php';
 require_once BASE_PATH . '/app/Controllers/DashboardController.php';
 require_once BASE_PATH . '/app/Controllers/MessageController.php';
+require_once BASE_PATH . '/app/Controllers/ProfileController.php';
 
 // Load Routes & Dispatch HTTP Request
 /** @var \Routes\Router $router */

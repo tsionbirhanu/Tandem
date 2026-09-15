@@ -9,6 +9,7 @@ use App\Controllers\AuthController;
 use App\Controllers\ServiceController;
 use App\Controllers\DashboardController;
 use App\Controllers\MessageController;
+use App\Controllers\ProfileController;
 
 class Router {
     private array $routes = [];
@@ -103,5 +104,9 @@ $router->post('/contact', [MessageController::class, 'submitContact']);
 $router->get('/dashboard/client', [DashboardController::class, 'client']);
 $router->get('/dashboard/freelancer', [DashboardController::class, 'freelancer']);
 $router->get('/dashboard/admin', [DashboardController::class, 'admin']);
+
+// Profile Routes
+$router->get('/profile/edit', [ProfileController::class, 'showEdit']);
+$router->post('/profile/edit', [ProfileController::class, 'edit']);
 
 return $router;

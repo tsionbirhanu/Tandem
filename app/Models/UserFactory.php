@@ -81,4 +81,23 @@ class UserFactory {
         ]);
         return (int)$pdo->lastInsertId();
     }
+
+    public static function updateProfile(\PDO $pdo, int $userId, string $name, string $email, ?string $avatarUrl = null): void {
+        if ($avatarUrl !== null) {
+            $stmt = $pdo->prepare("UPDATE users SET name = :name, email = :email, avatar_url = :avatar_url WHERE id = :id");
+            $stmt->execute([
+                'name'       => $name,
+                'email'      => $email,
+                'avatar_url' => $avatarUrl,
+                'id'         => $userId,
+            ]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET name = :name, email = :email WHERE id = :id");
+            $stmt->execute([
+                'name'  => $name,
+                'email' => $email,
+                'id'    => $userId,
+            ]);
+        }
+    }
 }

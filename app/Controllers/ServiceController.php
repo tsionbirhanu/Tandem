@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use Database;
 use App\Models\Service;
+use App\Models\ServiceImage;
 use App\Models\Category;
 use App\Models\Review;
 use Exception;
@@ -56,17 +57,20 @@ class ServiceController {
 
         $service = null;
         $reviews = [];
+        $galleryImages = [];
         $dbError = null;
 
         try {
             $pdo = Database::getConnection();
             $serviceModel = new Service($pdo);
             $reviewModel  = new Review($pdo);
+            $imageModel   = new ServiceImage($pdo);
 
             $service = $serviceModel->find($id);
 
             if ($service) {
-                $reviews = $reviewModel->getByServiceId($id);
+                $reviews       = $reviewModel->getByServiceId($id);
+                $galleryImages = $imageModel->getByServiceId($id);
             }
         } catch (Exception $e) {
             $dbError = "Database Error: Unable to fetch service details. " . $e->getMessage();
@@ -79,9 +83,10 @@ class ServiceController {
         }
 
         render('services/details', [
-            'service' => $service,
-            'reviews' => $reviews,
-            'dbError' => $dbError,
+            'service'       => $service,
+            'reviews'       => $reviews,
+            'galleryImages' => $galleryImages,
+            'dbError'       => $dbError,
         ]);
     }
 
@@ -134,6 +139,35 @@ class ServiceController {
             $errors['summary'] = "Service summary is required.";
         }
 
+        // Validate Multi-Image Uploads (max 5)
+        $uploadedImageFiles = [];
+        if (isset($_FILES['service_images']) && is_array($_FILES['service_images']['name'])) {
+            $fileCount = count(array_filter($_FILES['service_images']['name']));
+            if ($fileCount > 5) {
+                $errors['service_images'] = "You can upload a maximum of 5 service gallery images.";
+            } else {
+                for ($i = 0; $i < count($_FILES['service_images']['name']); $i++) {
+                    if ($_FILES['service_images']['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                        continue;
+                    }
+                    $singleFile = [
+                        'name'     => $_FILES['service_images']['name'][$i],
+                        'type'     => $_FILES['service_images']['type'][$i],
+                        'tmp_name' => $_FILES['service_images']['tmp_name'][$i],
+                        'error'    => $_FILES['service_images']['error'][$i],
+                        'size'     => $_FILES['service_images']['size'][$i],
+                    ];
+                    $uploadResult = uploadImageFile($singleFile, 'services');
+                    if ($uploadResult['success']) {
+                        $uploadedImageFiles[] = '/' . ltrim($uploadResult['path'], '/');
+                    } else {
+                        $errors['service_images'] = "Image #" . ($i + 1) . " error: " . $uploadResult['error'];
+                        break;
+                    }
+                }
+            }
+        }
+
         try {
             $pdo = Database::getConnection();
             $categoryModel = new Category($pdo);
@@ -149,7 +183,13 @@ class ServiceController {
                     'freelancer_id' => $_SESSION['user_id'] ?? 1,
                 ]);
 
-                setFlash('success', 'Service created successfully!');
+                // Save uploaded gallery images
+                $imageModel = new ServiceImage($pdo);
+                foreach ($uploadedImageFiles as $sortOrder => $imagePath) {
+                    $imageModel->create($serviceId, $imagePath, $sortOrder + 1);
+                }
+
+                setFlash('success', 'Service created successfully with gallery images!');
                 header("Location: /services/{$serviceId}");
                 exit;
             }
@@ -179,15 +219,18 @@ class ServiceController {
 
         $categories = [];
         $service = null;
+        $galleryImages = [];
         $dbError = null;
 
         try {
             $pdo = Database::getConnection();
             $serviceModel = new Service($pdo);
             $categoryModel = new Category($pdo);
+            $imageModel = new ServiceImage($pdo);
 
-            $service = $serviceModel->find($id);
-            $categories = $categoryModel->all();
+            $service       = $serviceModel->find($id);
+            $categories    = $categoryModel->all();
+            $galleryImages = $imageModel->getByServiceId($id);
         } catch (Exception $e) {
             $dbError = "Database Error: Unable to fetch service for editing. " . $e->getMessage();
         }
@@ -199,14 +242,15 @@ class ServiceController {
         }
 
         render('services/edit', [
-            'service'    => $service,
-            'categories' => $categories,
-            'title'      => $service['title'] ?? '',
-            'categoryId' => (int)($service['category_id'] ?? 0),
-            'price'      => $service['price'] ?? '',
-            'summary'    => $service['summary'] ?? '',
-            'errors'     => [],
-            'dbError'    => $dbError,
+            'service'       => $service,
+            'categories'    => $categories,
+            'galleryImages' => $galleryImages,
+            'title'         => $service['title'] ?? '',
+            'categoryId'    => (int)($service['category_id'] ?? 0),
+            'price'         => $service['price'] ?? '',
+            'summary'       => $service['summary'] ?? '',
+            'errors'        => [],
+            'dbError'       => $dbError,
         ]);
     }
 
@@ -221,6 +265,7 @@ class ServiceController {
         $errors     = [];
         $categories = [];
         $service    = null;
+        $galleryImages = [];
         $dbError    = null;
 
         if ($id <= 0) {
@@ -241,13 +286,42 @@ class ServiceController {
             $errors['summary'] = "Service summary is required.";
         }
 
+        // Process Image Deletions if requested
+        $deleteImageIds = $_POST['delete_images'] ?? [];
+
+        // Validate New Image Uploads
+        $newImageFiles = [];
+        if (isset($_FILES['service_images']) && is_array($_FILES['service_images']['name'])) {
+            for ($i = 0; $i < count($_FILES['service_images']['name']); $i++) {
+                if ($_FILES['service_images']['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                $singleFile = [
+                    'name'     => $_FILES['service_images']['name'][$i],
+                    'type'     => $_FILES['service_images']['type'][$i],
+                    'tmp_name' => $_FILES['service_images']['tmp_name'][$i],
+                    'error'    => $_FILES['service_images']['error'][$i],
+                    'size'     => $_FILES['service_images']['size'][$i],
+                ];
+                $uploadResult = uploadImageFile($singleFile, 'services');
+                if ($uploadResult['success']) {
+                    $newImageFiles[] = '/' . ltrim($uploadResult['path'], '/');
+                } else {
+                    $errors['service_images'] = "Image #" . ($i + 1) . " error: " . $uploadResult['error'];
+                    break;
+                }
+            }
+        }
+
         try {
             $pdo = Database::getConnection();
-            $serviceModel = new Service($pdo);
+            $serviceModel  = new Service($pdo);
             $categoryModel = new Category($pdo);
+            $imageModel    = new ServiceImage($pdo);
 
-            $categories = $categoryModel->all();
-            $service = $serviceModel->find($id);
+            $categories    = $categoryModel->all();
+            $service       = $serviceModel->find($id);
+            $galleryImages = $imageModel->getByServiceId($id);
 
             if (empty($errors)) {
                 $serviceModel->update($id, [
@@ -256,6 +330,18 @@ class ServiceController {
                     'price'       => (float)$price,
                     'summary'     => $summary,
                 ]);
+
+                // Delete specified images
+                if (!empty($deleteImageIds)) {
+                    foreach ($deleteImageIds as $imgId) {
+                        $imageModel->deleteById((int)$imgId);
+                    }
+                }
+
+                // Add newly uploaded images
+                foreach ($newImageFiles as $sortOrder => $imagePath) {
+                    $imageModel->create($id, $imagePath, count($galleryImages) + $sortOrder + 1);
+                }
 
                 setFlash('success', 'Service updated successfully!');
                 header("Location: /services/{$id}");
@@ -266,14 +352,15 @@ class ServiceController {
         }
 
         render('services/edit', [
-            'service'    => $service,
-            'categories' => $categories,
-            'title'      => $title,
-            'categoryId' => $categoryId,
-            'price'      => $price,
-            'summary'    => $summary,
-            'errors'     => $errors,
-            'dbError'    => $dbError,
+            'service'       => $service,
+            'categories'    => $categories,
+            'galleryImages' => $galleryImages,
+            'title'         => $title,
+            'categoryId'    => $categoryId,
+            'price'         => $price,
+            'summary'       => $summary,
+            'errors'        => $errors,
+            'dbError'       => $dbError,
         ]);
     }
 

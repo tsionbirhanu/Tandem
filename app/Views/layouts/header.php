@@ -74,6 +74,7 @@ $user = currentUser();
         <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" style="font-weight: 600; color: var(--color-primary);">
           Dashboard (<?php echo htmlspecialchars($user->getName(), ENT_QUOTES, 'UTF-8'); ?>)
         </a>
+        <a href="/profile/edit" style="color: var(--color-text-neutral);">Edit Profile</a>
         <a href="/logout" class="btn btn-secondary" style="padding: var(--space-8) var(--space-16);">Log Out</a>
       <?php else: ?>
         <a href="/login">Log In</a>

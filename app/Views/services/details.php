@@ -29,7 +29,7 @@ if (isLoggedIn() && $service) {
     <?php if ($service): ?>
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-32);">
             
-            <!-- Left Column: Service Overview & Reviews -->
+            <!-- Left Column: Service Overview, Gallery & Reviews -->
             <div>
                 <div class="sg-card" style="margin-bottom: var(--space-32);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-12); margin-bottom: var(--space-16);">
@@ -53,9 +53,15 @@ if (isLoggedIn() && $service) {
 
                     <!-- Freelancer Meta -->
                     <div style="display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-24); padding-bottom: var(--space-16); border-bottom: 1px solid var(--color-border);">
-                        <div style="width: 44px; height: 44px; border-radius: 50%; background-color: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.1rem;">
-                            <?php echo strtoupper(substr($service['freelancer_name'], 0, 1)); ?>
-                        </div>
+                        <?php if (!empty($service['freelancer_avatar'])): ?>
+                            <img src="<?php echo htmlspecialchars($service['freelancer_avatar'], ENT_QUOTES, 'UTF-8'); ?>" 
+                                 alt="<?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>" 
+                                 style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+                        <?php else: ?>
+                            <div style="width: 44px; height: 44px; border-radius: 50%; background-color: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.1rem;">
+                                <?php echo strtoupper(substr($service['freelancer_name'], 0, 1)); ?>
+                            </div>
+                        <?php endif; ?>
                         <div>
                             <div style="font-weight: 600; color: var(--color-text-neutral);">
                                 <?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>
@@ -65,6 +71,31 @@ if (isLoggedIn() && $service) {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Gallery Showcase -->
+                    <?php if (!empty($galleryImages)): ?>
+                        <div style="margin-bottom: var(--space-32);">
+                            <h3 style="margin-bottom: var(--space-12);">Service Gallery</h3>
+                            
+                            <!-- Featured Main Gallery Image -->
+                            <div style="width: 100%; height: 320px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); margin-bottom: var(--space-12); background-color: #f7fafc;">
+                                <img id="featured-gallery-img" src="<?php echo htmlspecialchars($galleryImages[0]['image_path'], ENT_QUOTES, 'UTF-8'); ?>" 
+                                     alt="Service Main Image" style="width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s ease;">
+                            </div>
+
+                            <!-- Thumbnail Row -->
+                            <?php if (count($galleryImages) > 1): ?>
+                                <div style="display: flex; gap: var(--space-8); overflow-x: auto; padding-bottom: 4px;">
+                                    <?php foreach ($galleryImages as $index => $img): ?>
+                                        <img class="gallery-thumb" src="<?php echo htmlspecialchars($img['image_path'], ENT_QUOTES, 'UTF-8'); ?>" 
+                                             alt="Gallery thumbnail" 
+                                             onclick="document.getElementById('featured-gallery-img').src = this.src"
+                                             style="width: 70px; height: 55px; border-radius: var(--radius-sm); object-fit: cover; cursor: pointer; border: 2px solid <?php echo $index === 0 ? 'var(--color-primary)' : 'var(--color-border)'; ?>;">
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <h3>Service Overview</h3>
                     <div style="line-height: 1.7; color: var(--color-text-neutral); margin-bottom: var(--space-24);">

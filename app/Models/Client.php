@@ -19,11 +19,13 @@ class Client extends User {
      * Role-specific method: Retrieves all project requests submitted by this client.
      */
     public function getProjectRequests(PDO $db): array {
-        $stmt = $db->prepare("SELECT pr.*, s.title AS service_title, s.price, c.name AS category_name, u.name AS freelancer_name 
+        $stmt = $db->prepare("SELECT pr.*, s.title AS service_title, s.price, c.name AS category_name, u.name AS freelancer_name,
+                                     IF(r.id IS NOT NULL, 1, 0) AS has_reviewed
                               FROM project_requests pr 
                               JOIN services s ON pr.service_id = s.id 
                               JOIN categories c ON s.category_id = c.id
                               JOIN users u ON s.freelancer_id = u.id 
+                              LEFT JOIN reviews r ON r.project_request_id = pr.id
                               WHERE pr.client_id = :client_id 
                               ORDER BY pr.created_at DESC");
         $stmt->execute([':client_id' => $this->id]);

@@ -10,61 +10,64 @@ use App\Controllers\ServiceController;
 use App\Controllers\DashboardController;
 use App\Controllers\MessageController;
 use App\Controllers\ProfileController;
+use App\Controllers\ReviewController;
 
-class Router {
-    private array $routes = [];
+if (!class_exists('Routes\Router')) {
+    class Router {
+        private array $routes = [];
 
-    public function get(string $path, array $handler): void {
-        $this->addRoute('GET', $path, $handler);
-    }
+        public function get(string $path, array $handler): void {
+            $this->addRoute('GET', $path, $handler);
+        }
 
-    public function post(string $path, array $handler): void {
-        $this->addRoute('POST', $path, $handler);
-    }
+        public function post(string $path, array $handler): void {
+            $this->addRoute('POST', $path, $handler);
+        }
 
-    private function addRoute(string $method, string $path, array $handler): void {
-        $normalizedPath = rtrim($path, '/') ?: '/';
-        
-        // Convert route pattern like '/services/{id}' into regex '~^/services/([^/]+)$~'
-        $pattern = preg_replace('/\{[a-zA-Z0-9_]+\}/', '([^/]+)', $normalizedPath);
-        $regex = '~^' . $pattern . '$~';
+        private function addRoute(string $method, string $path, array $handler): void {
+            $normalizedPath = rtrim($path, '/') ?: '/';
+            
+            // Convert route pattern like '/services/{id}' into regex '~^/services/([^/]+)$~'
+            $pattern = preg_replace('/\{[a-zA-Z0-9_]+\}/', '([^/]+)', $normalizedPath);
+            $regex = '~^' . $pattern . '$~';
 
-        $this->routes[] = [
-            'method'  => strtoupper($method),
-            'path'    => $normalizedPath,
-            'regex'   => $regex,
-            'handler' => $handler,
-        ];
-    }
+            $this->routes[] = [
+                'method'  => strtoupper($method),
+                'path'    => $normalizedPath,
+                'regex'   => $regex,
+                'handler' => $handler,
+            ];
+        }
 
-    public function dispatch(string $requestMethod, string $requestUri): void {
-        $requestMethod = strtoupper($requestMethod);
-        $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
-        $path = rtrim($path, '/') ?: '/';
-
-        // Support optional script subfolder if needed
-        $scriptName = dirname($_SERVER['SCRIPT_NAME'] ?? '');
-        if ($scriptName !== '/' && $scriptName !== '\\' && strpos($path, $scriptName) === 0) {
-            $path = substr($path, strlen($scriptName));
+        public function dispatch(string $requestMethod, string $requestUri): void {
+            $requestMethod = strtoupper($requestMethod);
+            $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
             $path = rtrim($path, '/') ?: '/';
-        }
 
-        foreach ($this->routes as $route) {
-            if ($route['method'] === $requestMethod && preg_match($route['regex'], $path, $matches)) {
-                array_shift($matches); // Remove full regex match
-                
-                [$class, $method] = $route['handler'];
-                $controller = new $class();
-                
-                // Call controller action passing extracted route parameters as arguments
-                call_user_func_array([$controller, $method], $matches);
-                return;
+            // Support optional script subfolder if needed
+            $scriptName = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+            if ($scriptName !== '/' && $scriptName !== '\\' && strpos($path, $scriptName) === 0) {
+                $path = substr($path, strlen($scriptName));
+                $path = rtrim($path, '/') ?: '/';
             }
-        }
 
-        // 404 Not Found
-        http_response_code(404);
-        render('errors/404', ['path' => $path]);
+            foreach ($this->routes as $route) {
+                if ($route['method'] === $requestMethod && preg_match($route['regex'], $path, $matches)) {
+                    array_shift($matches); // Remove full regex match
+                    
+                    [$class, $method] = $route['handler'];
+                    $controller = new $class();
+                    
+                    // Call controller action passing extracted route parameters as arguments
+                    call_user_func_array([$controller, $method], $matches);
+                    return;
+                }
+            }
+
+            // 404 Not Found
+            http_response_code(404);
+            render('errors/404', ['path' => $path]);
+        }
     }
 }
 
@@ -108,5 +111,11 @@ $router->get('/dashboard/admin', [DashboardController::class, 'admin']);
 // Profile Routes
 $router->get('/profile/edit', [ProfileController::class, 'showEdit']);
 $router->post('/profile/edit', [ProfileController::class, 'edit']);
+$router->get('/freelancer/{id}', [ProfileController::class, 'showFreelancer']);
+
+// Review Routes
+$router->get('/requests/{id}/review', [ReviewController::class, 'showCreate']);
+$router->post('/requests/{id}/review', [ReviewController::class, 'create']);
 
 return $router;
+

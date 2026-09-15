@@ -5,6 +5,8 @@ namespace App\Controllers;
 
 use Database;
 use App\Models\UserFactory;
+use App\Models\Service;
+use App\Models\Review;
 use Exception;
 
 class ProfileController {
@@ -90,6 +92,67 @@ class ProfileController {
             'email'   => $email,
             'errors'  => $errors,
             'dbError' => $dbError,
+        ]);
+    }
+
+    public function showFreelancer(int|string $id): void {
+        $id = (int)$id;
+        if ($id <= 0) {
+            header('Location: /services');
+            exit;
+        }
+
+        $freelancer = null;
+        $services   = [];
+        $reviews    = [];
+        $avgRating  = 5.0;
+        $reviewCount= 0;
+        $dbError    = null;
+
+        try {
+            $pdo = Database::getConnection();
+            $freelancer   = UserFactory::findUserById($pdo, $id);
+            $serviceModel = new Service($pdo);
+            $reviewModel  = new Review($pdo);
+
+            if ($freelancer && ($freelancer->isFreelancer() || $freelancer->isAdmin())) {
+                $services    = $serviceModel->findByFreelancer($id);
+                $reviews     = $reviewModel->getByFreelancerId($id);
+                $reviewCount = count($reviews);
+                if ($reviewCount > 0) {
+                    $totalScore = array_sum(array_column($reviews, 'rating'));
+                    $avgRating  = $totalScore / $reviewCount;
+                }
+
+                $freelancerData = [
+                    'id'           => $freelancer->getId(),
+                    'name'         => $freelancer->getName(),
+                    'email'        => $freelancer->getEmail(),
+                    'avatar_url'   => $freelancer->getAvatarUrl(),
+                    'role'         => $freelancer->getRole(),
+                    'rating_avg'   => $avgRating,
+                    'review_count' => $reviewCount,
+                ];
+            } else {
+                $freelancerData = null;
+            }
+        } catch (Exception $e) {
+            $dbError = "Database Error: Unable to load freelancer profile. " . $e->getMessage();
+        }
+
+        if (empty($freelancerData) && !$dbError) {
+            http_response_code(404);
+            render('errors/404', ['path' => "/freelancer/{$id}"]);
+            return;
+        }
+
+        render('profile/freelancer', [
+            'freelancer'  => $freelancerData,
+            'services'    => $services,
+            'reviews'     => $reviews,
+            'avgRating'   => $avgRating,
+            'reviewCount' => $reviewCount,
+            'dbError'     => $dbError,
         ]);
     }
 }

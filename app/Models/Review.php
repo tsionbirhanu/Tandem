@@ -73,4 +73,34 @@ class Review {
         $stmt->execute([':service_id' => $serviceId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Checks if a review has already been submitted for a project request.
+     */
+    public function hasReviewed(int $projectRequestId): bool {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM reviews WHERE project_request_id = :pr_id");
+        $stmt->execute([':pr_id' => $projectRequestId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Returns list of reviews received by a freelancer with client metadata.
+     */
+    public function getByFreelancerId(int $freelancerId): array {
+        $stmt = $this->db->prepare("
+            SELECT r.*, 
+                   c.name AS client_name, 
+                   c.avatar_url AS client_avatar,
+                   s.title AS service_title,
+                   s.id AS service_id
+            FROM reviews r
+            JOIN users c ON r.client_id = c.id
+            LEFT JOIN project_requests pr ON r.project_request_id = pr.id
+            LEFT JOIN services s ON pr.service_id = s.id
+            WHERE r.freelancer_id = :freelancer_id
+            ORDER BY r.created_at DESC
+        ");
+        $stmt->execute([':freelancer_id' => $freelancerId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

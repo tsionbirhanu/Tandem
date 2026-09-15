@@ -40,10 +40,11 @@ require_once BASE_PATH . '/app/Controllers/ServiceController.php';
 require_once BASE_PATH . '/app/Controllers/DashboardController.php';
 require_once BASE_PATH . '/app/Controllers/MessageController.php';
 require_once BASE_PATH . '/app/Controllers/ProfileController.php';
+require_once BASE_PATH . '/app/Controllers/ReviewController.php';
 
 // Load Routes & Dispatch HTTP Request
 /** @var \Routes\Router $router */
-$router = require_once BASE_PATH . '/routes/web.php';
+$router = require BASE_PATH . '/routes/web.php';
 
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $requestUri    = $_SERVER['REQUEST_URI'] ?? '/';

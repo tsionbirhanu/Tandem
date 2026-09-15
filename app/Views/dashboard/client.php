@@ -127,6 +127,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                                 <th style="padding: var(--space-12);">Freelancer</th>
                                 <th style="padding: var(--space-12);">Status</th>
                                 <th style="padding: var(--space-12);">Requested Date</th>
+                                <th style="padding: var(--space-12); text-align: right;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -138,7 +139,9 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                                         </a>
                                     </td>
                                     <td style="padding: var(--space-12);">
-                                        <?php echo htmlspecialchars($req['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                        <a href="/freelancer/<?php echo (int)($req['freelancer_id'] ?? 0); ?>" style="color: inherit; text-decoration: none; font-weight: 500;">
+                                            <?php echo htmlspecialchars($req['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </a>
                                     </td>
                                     <td style="padding: var(--space-12);">
                                         <?php
@@ -153,6 +156,19 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                                     </td>
                                     <td style="padding: var(--space-12); color: var(--color-text-muted);">
                                         <?php echo date('M j, Y', strtotime($req['created_at'])); ?>
+                                    </td>
+                                    <td style="padding: var(--space-12); text-align: right;">
+                                        <?php if ($req['status'] === 'completed'): ?>
+                                            <?php if (!empty($req['has_reviewed'])): ?>
+                                                <span class="badge badge-success" style="font-size: 0.75rem;">Reviewed ★</span>
+                                            <?php else: ?>
+                                                <a href="/requests/<?php echo (int)$req['id']; ?>/review" class="btn btn-primary" style="padding: var(--space-4) var(--space-12); font-size: 0.8rem;">
+                                                    Leave a Review
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span style="color: var(--color-text-muted); font-size: 0.8rem;">—</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

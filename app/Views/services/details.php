@@ -52,7 +52,7 @@ if (isLoggedIn() && $service) {
                     </h1>
 
                     <!-- Freelancer Meta -->
-                    <div style="display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-24); padding-bottom: var(--space-16); border-bottom: 1px solid var(--color-border);">
+                    <a href="/freelancer/<?php echo (int)($service['freelancer_id'] ?? 0); ?>" style="display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-24); padding-bottom: var(--space-16); border-bottom: 1px solid var(--color-border); text-decoration: none;">
                         <?php if (!empty($service['freelancer_avatar'])): ?>
                             <img src="<?php echo htmlspecialchars($service['freelancer_avatar'], ENT_QUOTES, 'UTF-8'); ?>" 
                                  alt="<?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>" 
@@ -65,12 +65,13 @@ if (isLoggedIn() && $service) {
                         <div>
                             <div style="font-weight: 600; color: var(--color-text-neutral);">
                                 <?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                <span class="badge badge-primary" style="font-size: 0.7rem; margin-left: 6px;">View Profile &rarr;</span>
                             </div>
                             <div class="text-caption" style="color: var(--color-text-muted);">
                                 <?php echo htmlspecialchars($service['freelancer_email'], ENT_QUOTES, 'UTF-8'); ?>
                             </div>
                         </div>
-                    </div>
+                    </a>
 
                     <!-- Gallery Showcase -->
                     <?php if (!empty($galleryImages)): ?>

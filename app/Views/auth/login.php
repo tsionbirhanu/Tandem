@@ -1,64 +1,6 @@
 <?php
-// login.php
-// User authentication handler using User model.
-
-require_once 'includes/Database.php';
-require_once 'includes/auth.php';
-
-use App\Models\UserFactory;
-
-if (isLoggedIn()) {
-    redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
-}
-
-$email = '';
-$errors = [];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    
-    // Validate Email
-    if (empty($email)) {
-        $errors['email'] = "Email address is required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = "Please enter a valid email address.";
-    }
-    
-    // Validate Password
-    if (empty($password)) {
-        $errors['password'] = "Password is required.";
-    }
-
-    // Authenticate via UserFactory
-    if (empty($errors)) {
-        try {
-            $pdo = Database::getConnection();
-            $userRow = UserFactory::findRowByEmail($pdo, $email);
-
-            if ($userRow && password_verify($password, $userRow['password_hash'])) {
-                session_regenerate_id(true);
-
-                $user = UserFactory::createUserFromRow($userRow);
-
-                $_SESSION['user_id']    = $user->getId();
-                $_SESSION['user_name']  = $user->getName();
-                $_SESSION['user_email'] = $user->getEmail();
-                $_SESSION['user_role']  = $user->getRole();
-
-                setFlash('success', "Welcome back, {$user->getName()}!");
-                redirectUserToDashboard($user->getRole());
-            } else {
-                $errors['login'] = "Invalid email address or password.";
-            }
-
-        } catch (Exception $e) {
-            $errors['login'] = "Database Connection Error: Unable to complete authentication. " . $e->getMessage();
-        }
-    }
-}
-
-include 'includes/header.php';
+// app/Views/auth/login.php
+include BASE_PATH . '/app/Views/layouts/header.php';
 ?>
 
 <main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
@@ -76,13 +18,13 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <div class="sg-card">
-            <form action="login.php" method="POST" novalidate>
+            <form action="/login" method="POST" novalidate>
                 
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <input type="email" id="email" name="email" 
                            class="form-input <?php echo isset($errors['email']) ? 'form-input-error' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>"
+                           value="<?php echo htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                            placeholder="e.g. sarah.j@acmelabs.io">
                     <?php if (isset($errors['email'])): ?>
                         <div class="form-error-msg"><?php echo htmlspecialchars($errors['email'], ENT_QUOTES, 'UTF-8'); ?></div>
@@ -103,7 +45,7 @@ include 'includes/header.php';
                 
                 <div style="text-align: center; margin-top: var(--space-24);">
                     <p class="text-small" style="color: var(--color-text-muted);">
-                        Don't have an account? <a href="register.php" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">Sign up</a>
+                        Don't have an account? <a href="/register" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">Sign up</a>
                     </p>
                 </div>
             </form>
@@ -112,4 +54,4 @@ include 'includes/header.php';
     </div>
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

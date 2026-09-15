@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 function requireLogin(): void {
     if (!isset($_SESSION['user_id'])) {
         setFlash('error', 'Please log in to access this page.');
-        header('Location: login.php');
+        header('Location: /login');
         exit;
     }
 }
@@ -110,9 +110,9 @@ function renderFlashMessages(): void {
  */
 function redirectUserToDashboard(string $role): void {
     $target = match ($role) {
-        'admin'      => 'admin-dashboard.php',
-        'freelancer' => 'freelancer-dashboard.php',
-        default      => 'client-dashboard.php',
+        'admin'      => '/dashboard/admin',
+        'freelancer' => '/dashboard/freelancer',
+        default      => '/dashboard/client',
     };
     header("Location: {$target}");
     exit;

@@ -8,7 +8,7 @@ use PDO;
 class Freelancer extends User {
 
     public function getDashboardUrl(): string {
-        return 'freelancer-dashboard.php';
+        return '/dashboard/freelancer';
     }
 
     public function getRoleDisplayName(): string {

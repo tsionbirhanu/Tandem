@@ -8,7 +8,7 @@ use PDO;
 class Admin extends User {
 
     public function getDashboardUrl(): string {
-        return 'admin-dashboard.php';
+        return '/dashboard/admin';
     }
 
     public function getRoleDisplayName(): string {

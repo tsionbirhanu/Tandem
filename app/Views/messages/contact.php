@@ -1,64 +1,6 @@
 <?php
-// contact.php
-// Handles rendering and validation for contact/project requests with live character counter and success state.
-
-$isSubmitted = ($_SERVER['REQUEST_METHOD'] === 'POST');
-
-$name = '';
-$email = '';
-$message = '';
-$errors = [];
-$isSuccess = false;
-$submittedData = [];
-
-if ($isSubmitted) {
-    // 1. Sanitize and retrieve POST data
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $message = trim($_POST['message'] ?? '');
-
-    // 2. Validate data
-    // Name: required, minimum 2 characters
-    if (empty($name)) {
-        $errors['name'] = "Name is required.";
-    } elseif (mb_strlen($name) < 2) {
-        $errors['name'] = "Name must be at least 2 characters long.";
-    }
-    
-    // Email: required, valid email format
-    if (empty($email)) {
-        $errors['email'] = "Email address is required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = "Please enter a valid email address.";
-    }
-    
-    // Message: required, 20 to 1000 characters
-    if (empty($message)) {
-        $errors['message'] = "Project details are required.";
-    } elseif (mb_strlen($message) < 20) {
-        $errors['message'] = "Message must be at least 20 characters long.";
-    } elseif (mb_strlen($message) > 1000) {
-        $errors['message'] = "Message cannot exceed 1000 characters.";
-    }
-
-    // 3. Process success
-    if (empty($errors)) {
-        $isSuccess = true;
-        $submittedData = [
-            'name' => $name,
-            'email' => $email,
-            'message' => $message,
-            'submitted_at' => date('F j, Y, g:i a')
-        ];
-        
-        // Reset form variables after saving submission data
-        $name = '';
-        $email = '';
-        $message = '';
-    }
-}
-
-include 'includes/header.php';
+// app/Views/messages/contact.php
+include BASE_PATH . '/app/Views/layouts/header.php';
 ?>
 
 <main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
@@ -89,8 +31,8 @@ include 'includes/header.php';
                 </div>
 
                 <div style="display: flex; gap: var(--space-16); justify-content: center; flex-wrap: wrap;">
-                    <a href="services.php" class="btn btn-primary">Browse Services</a>
-                    <a href="contact.php" class="btn btn-secondary">Send Another Request</a>
+                    <a href="/services" class="btn btn-primary">Browse Services</a>
+                    <a href="/contact" class="btn btn-secondary">Send Another Request</a>
                 </div>
             </div>
         <?php else: ?>
@@ -107,7 +49,7 @@ include 'includes/header.php';
             <?php endif; ?>
 
             <div class="sg-card">
-                <form action="contact.php" method="POST" novalidate>
+                <form action="/contact" method="POST" novalidate>
                     
                     <div class="form-group">
                         <label class="form-label" for="name">Your Name</label>
@@ -190,4 +132,4 @@ include 'includes/header.php';
 
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

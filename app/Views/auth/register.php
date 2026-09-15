@@ -1,98 +1,6 @@
 <?php
-// register.php
-// User registration handler using User model.
-
-require_once 'includes/Database.php';
-require_once 'includes/auth.php';
-
-use App\Models\UserFactory;
-
-if (isLoggedIn()) {
-    redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
-}
-
-$name = '';
-$email = '';
-$role = 'client';
-$errors = [];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $role = $_POST['role'] ?? 'client';
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    
-    // Validate Name
-    if (empty($name)) {
-        $errors['name'] = "Full name is required.";
-    } elseif (mb_strlen($name) < 2) {
-        $errors['name'] = "Name must be at least 2 characters long.";
-    }
-    
-    // Validate Email
-    if (empty($email)) {
-        $errors['email'] = "Email address is required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = "Please enter a valid email address.";
-    } else {
-        try {
-            $pdo = Database::getConnection();
-
-            if (UserFactory::emailExists($pdo, $email)) {
-                $errors['email'] = "This email address is already registered.";
-            }
-        } catch (Exception $e) {
-            $errors['global'] = "Database Connection Error: Unable to verify email uniqueness.";
-        }
-    }
-    
-    // Validate Role
-    if (!in_array($role, ['client', 'freelancer'], true)) {
-        $role = 'client';
-    }
-
-    // Validate Password
-    if (empty($password)) {
-        $errors['password'] = "Password is required.";
-    } elseif (strlen($password) < 8) {
-        $errors['password'] = "Password must be at least 8 characters.";
-    }
-    
-    // Validate Password Confirmation
-    if ($password !== $confirm_password) {
-        $errors['confirm_password'] = "Passwords do not match.";
-    }
-    
-    // Register User via UserFactory
-    if (empty($errors)) {
-        try {
-            $pdo = Database::getConnection();
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            $newUserId = UserFactory::createUser($pdo, [
-                'name'          => $name,
-                'email'         => $email,
-                'password_hash' => $hashed_password,
-                'role'          => $role,
-            ]);
-            
-            session_regenerate_id(true);
-            $_SESSION['user_id']    = $newUserId;
-            $_SESSION['user_name']  = $name;
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_role']  = $role;
-            
-            setFlash('success', "Account created successfully! Welcome to Tandem, {$name}.");
-            redirectUserToDashboard($role);
-
-        } catch (Exception $e) {
-            $errors['global'] = "Registration failed: " . $e->getMessage();
-        }
-    }
-}
-
-include 'includes/header.php';
+// app/Views/auth/register.php
+include BASE_PATH . '/app/Views/layouts/header.php';
 ?>
 
 <main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
@@ -110,13 +18,13 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <div class="sg-card">
-            <form action="register.php" method="POST" novalidate>
+            <form action="/register" method="POST" novalidate>
                 
                 <div class="form-group">
                     <label class="form-label" for="name">Full Name</label>
                     <input type="text" id="name" name="name" 
                            class="form-input <?php echo isset($errors['name']) ? 'form-input-error' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>"
+                           value="<?php echo htmlspecialchars($name ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                            placeholder="e.g. Jane Doe">
                     <?php if (isset($errors['name'])): ?>
                         <div class="form-error-msg"><?php echo htmlspecialchars($errors['name'], ENT_QUOTES, 'UTF-8'); ?></div>
@@ -127,7 +35,7 @@ include 'includes/header.php';
                     <label class="form-label" for="email">Email Address</label>
                     <input type="email" id="email" name="email" 
                            class="form-input <?php echo isset($errors['email']) ? 'form-input-error' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>"
+                           value="<?php echo htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                            placeholder="e.g. jane@example.com">
                     <?php if (isset($errors['email'])): ?>
                         <div class="form-error-msg"><?php echo htmlspecialchars($errors['email'], ENT_QUOTES, 'UTF-8'); ?></div>
@@ -137,10 +45,10 @@ include 'includes/header.php';
                 <div class="form-group">
                     <label class="form-label">I want to join as a:</label>
                     <div class="segmented-control">
-                        <input type="radio" id="role_client" name="role" value="client" <?php echo ($role === 'client') ? 'checked' : ''; ?>>
+                        <input type="radio" id="role_client" name="role" value="client" <?php echo (($role ?? 'client') === 'client') ? 'checked' : ''; ?>>
                         <label for="role_client">Client (Hire Talent)</label>
                         
-                        <input type="radio" id="role_freelancer" name="role" value="freelancer" <?php echo ($role === 'freelancer') ? 'checked' : ''; ?>>
+                        <input type="radio" id="role_freelancer" name="role" value="freelancer" <?php echo (($role ?? 'client') === 'freelancer') ? 'checked' : ''; ?>>
                         <label for="role_freelancer">Freelancer (Find Work)</label>
                     </div>
                 </div>
@@ -171,7 +79,7 @@ include 'includes/header.php';
                 
                 <div style="text-align: center; margin-top: var(--space-24);">
                     <p class="text-small" style="color: var(--color-text-muted);">
-                        Already have an account? <a href="login.php" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">Log in</a>
+                        Already have an account? <a href="/login" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">Log in</a>
                     </p>
                 </div>
             </form>
@@ -180,4 +88,4 @@ include 'includes/header.php';
     </div>
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

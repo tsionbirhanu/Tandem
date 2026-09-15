@@ -57,4 +57,20 @@ class Review {
         $stmt->execute([':id' => $freelancerId]);
         return (float)$stmt->fetchColumn();
     }
+
+    /**
+     * Returns list of reviews for a given service ID.
+     */
+    public function getByServiceId(int $serviceId): array {
+        $stmt = $this->db->prepare("
+            SELECT r.*, u.name AS client_name 
+            FROM reviews r
+            JOIN project_requests pr ON pr.id = r.project_request_id
+            JOIN users u ON u.id = r.client_id
+            WHERE pr.service_id = :service_id
+            ORDER BY r.created_at DESC
+        ");
+        $stmt->execute([':service_id' => $serviceId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

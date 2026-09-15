@@ -1,22 +1,6 @@
 <?php
-// index.php
-// Homepage of Tandem featuring top-rated service listings queried via Service model.
-
-require_once 'includes/Database.php';
-
-use App\Models\Service;
-
-$featuredServices = [];
-
-try {
-    $pdo = Database::getConnection();
-    $serviceModel = new Service($pdo);
-    $featuredServices = $serviceModel->featured(3);
-} catch (Exception $e) {
-    $featuredServices = [];
-}
-
-include 'includes/header.php';
+// app/Views/home/index.php
+include BASE_PATH . '/app/Views/layouts/header.php';
 ?>
 
 <main class="page-main">
@@ -27,7 +11,7 @@ include 'includes/header.php';
             <p style="font-size: var(--text-h5); color: var(--color-text-muted); max-width: 600px; margin: 0 auto var(--space-32) auto;">
                 Tandem is a curated network of top-tier designers, developers, and writers.
             </p>
-            <a href="services.php" class="btn btn-primary">Browse All Services</a>
+            <a href="/services" class="btn btn-primary">Browse All Services</a>
         </div>
     </section>
 
@@ -37,13 +21,13 @@ include 'includes/header.php';
         <div class="sg-grid-auto" style="margin-top: var(--space-32);">
             <?php if (!empty($featuredServices)): ?>
                 <?php foreach ($featuredServices as $service): ?>
-                    <a href="service-details.php?id=<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
+                    <a href="/service/details?id=<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
                         <article class="card-listing" style="height: 100%;">
                             <div class="card-image-placeholder"></div>
                             <div class="card-content">
                                 <div class="card-badge-row">
                                     <span class="badge badge-neutral"><?php echo htmlspecialchars($service['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php if ($service['rating'] >= 4.9): ?>
+                                    <?php if (($service['rating'] ?? 0) >= 4.9): ?>
                                         <span class="badge badge-success">Top Rated</span>
                                     <?php endif; ?>
                                 </div>
@@ -52,7 +36,7 @@ include 'includes/header.php';
                                 <div class="card-footer">
                                     <div class="star-rating">
                                         <span class="star filled">★</span>
-                                        <span class="rating-text"><?php echo number_format((float)$service['rating'], 1); ?> (<?php echo (int)$service['reviews']; ?>)</span>
+                                        <span class="rating-text"><?php echo number_format((float)($service['rating'] ?? 0), 1); ?> (<?php echo (int)($service['reviews'] ?? 0); ?>)</span>
                                     </div>
                                     <div class="card-price">Starting at $<?php echo number_format((float)$service['price'], 2); ?></div>
                                 </div>
@@ -63,11 +47,11 @@ include 'includes/header.php';
             <?php else: ?>
                 <div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: var(--space-32) 0;">
                     <p>Discover our wide selection of services available on Tandem.</p>
-                    <a href="services.php" class="btn btn-secondary" style="margin-top: var(--space-12);">View Services Directory</a>
+                    <a href="/services" class="btn btn-secondary" style="margin-top: var(--space-12);">View Services Directory</a>
                 </div>
             <?php endif; ?>
         </div>
     </section>
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

@@ -8,7 +8,7 @@ use PDO;
 class Client extends User {
 
     public function getDashboardUrl(): string {
-        return 'client-dashboard.php';
+        return '/dashboard/client';
     }
 
     public function getRoleDisplayName(): string {

@@ -13,11 +13,23 @@ use Exception;
 class ServiceController {
 
     public function index(): void {
-        $search = trim($_GET['search'] ?? '');
-        $selectedCategory = trim($_GET['category'] ?? '');
+        $search          = trim($_GET['search'] ?? '');
+        $selectedCategory= trim($_GET['category'] ?? '');
+        $minPrice        = (isset($_GET['min_price']) && is_numeric($_GET['min_price'])) ? (float)$_GET['min_price'] : null;
+        $maxPrice        = (isset($_GET['max_price']) && is_numeric($_GET['max_price'])) ? (float)$_GET['max_price'] : null;
+        $minRating       = (isset($_GET['min_rating']) && is_numeric($_GET['min_rating'])) ? (float)$_GET['min_rating'] : null;
+        $sort            = trim($_GET['sort'] ?? 'newest');
+        $page            = max(1, (int)($_GET['page'] ?? 1));
+        $perPage         = 12;
 
-        $services = [];
         $categories = [];
+        $result = [
+            'services'   => [],
+            'total'      => 0,
+            'page'       => 1,
+            'totalPages' => 1,
+            'perPage'    => $perPage,
+        ];
         $dbError = null;
 
         try {
@@ -26,23 +38,101 @@ class ServiceController {
             $categoryModel = new Category($pdo);
 
             $categories = $categoryModel->all();
-
-            if (!empty($search)) {
-                $services = $serviceModel->search($search);
-            } elseif (!empty($selectedCategory)) {
-                $services = $serviceModel->findByCategorySlug($selectedCategory);
-            } else {
-                $services = $serviceModel->all();
-            }
+            $result = $serviceModel->filter([
+                'search'     => $search,
+                'category'   => $selectedCategory,
+                'min_price'  => $minPrice,
+                'max_price'  => $maxPrice,
+                'min_rating' => $minRating,
+                'sort'       => $sort,
+                'page'       => $page,
+                'per_page'   => $perPage,
+            ]);
         } catch (Exception $e) {
             $dbError = "Database Connection Error: Unable to retrieve services data. " . $e->getMessage();
         }
 
+        // Build active filter chips for UI
+        $activeChips = [];
+        $queryParams = $_GET;
+
+        if (!empty($search)) {
+            $paramsWithoutSearch = $queryParams;
+            unset($paramsWithoutSearch['search'], $paramsWithoutSearch['page']);
+            $activeChips[] = [
+                'key'        => 'search',
+                'label'      => 'Search: "' . htmlspecialchars($search, ENT_QUOTES, 'UTF-8') . '"',
+                'remove_url' => '/services?' . http_build_query($paramsWithoutSearch),
+            ];
+        }
+
+        if (!empty($selectedCategory)) {
+            $categoryName = $selectedCategory;
+            foreach ($categories as $cat) {
+                if ($cat['slug'] === $selectedCategory) {
+                    $categoryName = $cat['name'];
+                    break;
+                }
+            }
+            $paramsWithoutCategory = $queryParams;
+            unset($paramsWithoutCategory['category'], $paramsWithoutCategory['page']);
+            $activeChips[] = [
+                'key'        => 'category',
+                'label'      => 'Category: ' . htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8'),
+                'remove_url' => '/services?' . http_build_query($paramsWithoutCategory),
+            ];
+        }
+
+        if ($minPrice !== null || $maxPrice !== null) {
+            $priceLabel = 'Price: ';
+            if ($minPrice !== null && $maxPrice !== null) {
+                $priceLabel .= '$' . number_format($minPrice, 2) . ' - $' . number_format($maxPrice, 2);
+            } elseif ($minPrice !== null) {
+                $priceLabel .= 'Min $' . number_format($minPrice, 2);
+            } else {
+                $priceLabel .= 'Max $' . number_format($maxPrice, 2);
+            }
+            $paramsWithoutPrice = $queryParams;
+            unset($paramsWithoutPrice['min_price'], $paramsWithoutPrice['max_price'], $paramsWithoutPrice['page']);
+            $activeChips[] = [
+                'key'        => 'price',
+                'label'      => htmlspecialchars($priceLabel, ENT_QUOTES, 'UTF-8'),
+                'remove_url' => '/services?' . http_build_query($paramsWithoutPrice),
+            ];
+        }
+
+        if ($minRating !== null && $minRating > 0) {
+            $paramsWithoutRating = $queryParams;
+            unset($paramsWithoutRating['min_rating'], $paramsWithoutRating['page']);
+            $activeChips[] = [
+                'key'        => 'min_rating',
+                'label'      => 'Rating: ' . number_format($minRating, 1) . '+ ★',
+                'remove_url' => '/services?' . http_build_query($paramsWithoutRating),
+            ];
+        }
+
+        // Helper function to build page link retaining current GET params
+        $buildPageUrl = function(int $pageNum) use ($queryParams): string {
+            $params = $queryParams;
+            $params['page'] = $pageNum;
+            return '/services?' . http_build_query($params);
+        };
+
         render('services/index', [
-            'services'         => $services,
+            'services'         => $result['services'],
+            'total'            => $result['total'],
+            'page'             => $result['page'],
+            'totalPages'       => $result['totalPages'],
+            'perPage'          => $result['perPage'],
             'categories'       => $categories,
             'search'           => $search,
             'selectedCategory' => $selectedCategory,
+            'minPrice'         => $minPrice,
+            'maxPrice'         => $maxPrice,
+            'minRating'        => $minRating,
+            'sort'             => $sort,
+            'activeChips'      => $activeChips,
+            'buildPageUrl'     => $buildPageUrl,
             'dbError'          => $dbError,
         ]);
     }

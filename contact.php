@@ -1,47 +1,57 @@
 <?php
 // contact.php
-// This single file handles both rendering the contact form (HTTP GET) and processing its submission (HTTP POST).
+// Handles rendering and validation for contact/project requests with live character counter and success state.
 
-// Check if the form was submitted.
-// $_SERVER['REQUEST_METHOD'] tells us if the browser sent a GET (navigated to page) or POST (submitted form) request.
 $isSubmitted = ($_SERVER['REQUEST_METHOD'] === 'POST');
 
-// Variables to store form data and errors
 $name = '';
 $email = '';
 $message = '';
 $errors = [];
-$successMessage = '';
+$isSuccess = false;
+$submittedData = [];
 
 if ($isSubmitted) {
     // 1. Sanitize and retrieve POST data
-    // It's important to trim whitespace and prevent XSS (though htmlspecialchars is better on output).
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $message = trim($_POST['message'] ?? '');
 
     // 2. Validate data
+    // Name: required, minimum 2 characters
     if (empty($name)) {
-        $errors['name'] = "Please enter your name.";
+        $errors['name'] = "Name is required.";
+    } elseif (mb_strlen($name) < 2) {
+        $errors['name'] = "Name must be at least 2 characters long.";
     }
     
+    // Email: required, valid email format
     if (empty($email)) {
-        $errors['email'] = "Please enter your email address.";
+        $errors['email'] = "Email address is required.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors['email'] = "Please enter a valid email address.";
     }
     
+    // Message: required, 20 to 1000 characters
     if (empty($message)) {
-        $errors['message'] = "Please tell us about your project.";
+        $errors['message'] = "Project details are required.";
+    } elseif (mb_strlen($message) < 20) {
+        $errors['message'] = "Message must be at least 20 characters long.";
+    } elseif (mb_strlen($message) > 1000) {
+        $errors['message'] = "Message cannot exceed 1000 characters.";
     }
 
     // 3. Process success
     if (empty($errors)) {
-        // Normally you would save to a database or send an email here.
-        // For our demo, we just set a success message.
-        $successMessage = "Thank you, {$name}! Your project request has been received. We'll be in touch soon.";
+        $isSuccess = true;
+        $submittedData = [
+            'name' => $name,
+            'email' => $email,
+            'message' => $message,
+            'submitted_at' => date('F j, Y, g:i a')
+        ];
         
-        // Reset form fields after successful submission so the user doesn't double-submit
+        // Reset form variables after saving submission data
         $name = '';
         $email = '';
         $message = '';
@@ -55,44 +65,58 @@ include 'includes/header.php';
     
     <div style="max-width: 600px; margin: 0 auto;">
         
-        <div style="text-align: center; margin-bottom: var(--space-32);">
-            <h1>Start a Project</h1>
-            <p class="text-small" style="color: var(--color-text-muted);">Tell us what you need, and we'll connect you with the right talent.</p>
-        </div>
+        <?php if ($isSuccess): ?>
+            <!-- Polished Success State -->
+            <div class="sg-card" style="text-align: center; padding: var(--space-48) var(--space-32);">
+                <div style="width: 72px; height: 72px; background-color: rgba(72, 187, 120, 0.12); color: var(--color-success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-24);">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                
+                <h1 style="font-size: var(--text-h2); margin-bottom: var(--space-12);">Request Received!</h1>
+                <p style="font-size: var(--text-body); color: var(--color-text-muted); margin-bottom: var(--space-24); line-height: 1.6;">
+                    Thank you, <strong><?php echo htmlspecialchars($submittedData['name'], ENT_QUOTES, 'UTF-8'); ?></strong>! We've received your project request and sent a confirmation to <strong><?php echo htmlspecialchars($submittedData['email'], ENT_QUOTES, 'UTF-8'); ?></strong>.
+                </p>
 
-        <?php if (!empty($successMessage)): ?>
-            <!-- Success State -->
-            <div class="alert alert-success">
-                <strong>Success:</strong> <?php echo htmlspecialchars($successMessage); ?>
-            </div>
-            <div style="text-align: center; margin-top: var(--space-24);">
-                <a href="services.php" class="btn btn-secondary">Browse More Services</a>
+                <div style="background-color: var(--color-bg-base); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-20); text-align: left; margin-bottom: var(--space-32);">
+                    <div style="font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: var(--space-8);">
+                        Submitted Message Excerpt
+                    </div>
+                    <p style="margin: 0; font-size: var(--text-small); color: var(--color-text-neutral); white-space: pre-wrap; font-style: italic;">
+                        "<?php echo htmlspecialchars($submittedData['message'], ENT_QUOTES, 'UTF-8'); ?>"
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: var(--space-16); justify-content: center; flex-wrap: wrap;">
+                    <a href="services.php" class="btn btn-primary">Browse Services</a>
+                    <a href="contact.php" class="btn btn-secondary">Send Another Request</a>
+                </div>
             </div>
         <?php else: ?>
             <!-- Form State -->
-            
+            <div style="text-align: center; margin-bottom: var(--space-32);">
+                <h1>Start a Project</h1>
+                <p class="text-small" style="color: var(--color-text-muted);">Tell us what you need, and we'll connect you with the right talent.</p>
+            </div>
+
             <?php if (!empty($errors)): ?>
-                <!-- Global error summary (optional, but good for UX) -->
-                <div class="alert alert-error">
+                <div class="alert alert-error" style="margin-bottom: var(--space-24);">
                     <strong>Please correct the errors below to continue.</strong>
                 </div>
             <?php endif; ?>
 
             <div class="sg-card">
-                <!-- 
-                   The form action is empty, which defaults to submitting to itself (contact.php).
-                   The method is POST so data is sent securely in the request body, not the URL.
-                -->
-                <form action="" method="POST">
+                <form action="contact.php" method="POST" novalidate>
                     
                     <div class="form-group">
                         <label class="form-label" for="name">Your Name</label>
-                        <!-- We re-populate the value attribute so the user doesn't lose typed data if there's an error -->
                         <input type="text" id="name" name="name" 
                                class="form-input <?php echo isset($errors['name']) ? 'form-input-error' : ''; ?>" 
-                               value="<?php echo htmlspecialchars($name); ?>">
+                               value="<?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>"
+                               placeholder="e.g. Jane Doe">
                         <?php if (isset($errors['name'])): ?>
-                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['name']); ?></div>
+                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['name'], ENT_QUOTES, 'UTF-8'); ?></div>
                         <?php endif; ?>
                     </div>
 
@@ -100,18 +124,25 @@ include 'includes/header.php';
                         <label class="form-label" for="email">Email Address</label>
                         <input type="email" id="email" name="email" 
                                class="form-input <?php echo isset($errors['email']) ? 'form-input-error' : ''; ?>" 
-                               value="<?php echo htmlspecialchars($email); ?>">
+                               value="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>"
+                               placeholder="e.g. jane@example.com">
                         <?php if (isset($errors['email'])): ?>
-                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['email']); ?></div>
+                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['email'], ENT_QUOTES, 'UTF-8'); ?></div>
                         <?php endif; ?>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="message">Project Details</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8);">
+                            <label class="form-label" for="message" style="margin-bottom: 0;">Project Details</label>
+                            <span id="char-counter" class="text-caption" style="transition: color 0.2s ease;">
+                                0 / 1000 characters
+                            </span>
+                        </div>
                         <textarea id="message" name="message" rows="5" 
-                                  class="form-input <?php echo isset($errors['message']) ? 'form-input-error' : ''; ?>"><?php echo htmlspecialchars($message); ?></textarea>
+                                  class="form-input <?php echo isset($errors['message']) ? 'form-input-error' : ''; ?>"
+                                  placeholder="Describe your project, requirements, or scope (min 20 characters)..."><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></textarea>
                         <?php if (isset($errors['message'])): ?>
-                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['message']); ?></div>
+                            <div class="form-error-msg"><?php echo htmlspecialchars($errors['message'], ENT_QUOTES, 'UTF-8'); ?></div>
                         <?php endif; ?>
                     </div>
 
@@ -119,6 +150,40 @@ include 'includes/header.php';
                     
                 </form>
             </div>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const messageInput = document.getElementById('message');
+                const charCounter = document.getElementById('char-counter');
+                
+                if (messageInput && charCounter) {
+                    const minLength = 20;
+                    const maxLength = 1000;
+                    
+                    function updateCounter() {
+                        const count = messageInput.value.length;
+                        charCounter.textContent = `${count} / ${maxLength} characters`;
+                        
+                        if (count > maxLength) {
+                            charCounter.style.color = 'var(--color-error)';
+                            charCounter.style.fontWeight = '600';
+                        } else if (count > 0 && count < minLength) {
+                            charCounter.style.color = '#d69e2e'; // warning tone
+                            charCounter.style.fontWeight = '500';
+                        } else {
+                            charCounter.style.color = 'var(--color-text-muted)';
+                            charCounter.style.fontWeight = 'normal';
+                        }
+                    }
+                    
+                    ['input', 'keyup', 'paste', 'change'].forEach(function(eventType) {
+                        messageInput.addEventListener(eventType, updateCounter);
+                    });
+                    
+                    updateCounter();
+                }
+            });
+            </script>
         <?php endif; ?>
         
     </div>

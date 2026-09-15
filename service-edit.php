@@ -1,8 +1,12 @@
 <?php
 // service-edit.php
-// Form and handler for updating existing service listings using PDO prepared statements.
+// Form and handler for updating existing service listings using Category, User, and Service models.
 
 require_once 'includes/Database.php';
+
+use App\Models\Category;
+use App\Models\User;
+use App\Models\Service;
 
 $serviceId = (int)($_REQUEST['id'] ?? 0);
 $errors = [];
@@ -14,17 +18,17 @@ $dbError = null;
 try {
     $pdo = Database::getConnection();
 
-    // Fetch existing service
-    $stmt = $pdo->prepare("SELECT * FROM services WHERE id = :id");
-    $stmt->execute([':id' => $serviceId]);
-    $service = $stmt->fetch();
+    $categoryModel = new Category($pdo);
+    $userModel     = new User($pdo);
+    $serviceModel  = new Service($pdo);
+
+    $service = $serviceModel->find($serviceId);
 
     if (!$service) {
         $dbError = "Service listing not found.";
     } else {
-        // Fetch categories & freelancers for selects
-        $categories = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
-        $freelancers = $pdo->query("SELECT id, name, email FROM users WHERE role = 'freelancer' ORDER BY name ASC")->fetchAll();
+        $categories  = $categoryModel->all();
+        $freelancers = $userModel->findByRole('freelancer');
     }
 
 } catch (Exception $e) {
@@ -64,17 +68,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $service && !$dbError) {
         $errors['description'] = "Description must be at least 20 characters long.";
     }
 
-    // Update database
+    // Update database via Service model
     if (empty($errors)) {
         try {
-            $updateStmt = $pdo->prepare("UPDATE services SET freelancer_id = :freelancer_id, category_id = :category_id, title = :title, description = :description, price = :price WHERE id = :id");
-            $updateStmt->execute([
-                ':freelancer_id' => $freelancer_id,
-                ':category_id'   => $category_id,
-                ':title'         => $title,
-                ':description'   => $description,
-                ':price'         => (float)$price,
-                ':id'            => $serviceId,
+            $serviceModel->update($serviceId, [
+                'freelancer_id' => $freelancer_id,
+                'category_id'   => $category_id,
+                'title'         => $title,
+                'description'   => $description,
+                'price'         => (float)$price,
             ]);
 
             header("Location: service-details.php?id={$serviceId}&msg=updated");
@@ -84,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $service && !$dbError) {
             $errors['global'] = "Failed to update service: " . $e->getMessage();
         }
     } else {
-        // Keep user typed input in form
         $service['title'] = $title;
         $service['category_id'] = $category_id;
         $service['freelancer_id'] = $freelancer_id;

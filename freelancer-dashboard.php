@@ -1,9 +1,13 @@
 <?php
 // freelancer-dashboard.php
-// Full SaaS dashboard for Freelancer accounts with responsive sidebar & PDO stats summary.
+// Freelancer SaaS Dashboard refactored to use Service, ProjectRequest, and Review models.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
+
+use App\Models\Service;
+use App\Models\ProjectRequest;
+use App\Models\Review;
 
 requireRole('freelancer');
 
@@ -22,37 +26,17 @@ $incomingRequests = [];
 try {
     $pdo = Database::getConnection();
 
-    // 1. Stats summary queries
-    $stmtSvc = $pdo->prepare("SELECT COUNT(*) FROM services WHERE freelancer_id = :id");
-    $stmtSvc->execute([':id' => $user['id']]);
-    $stats['active_services'] = (int)$stmtSvc->fetchColumn();
+    $serviceModel = new Service($pdo);
+    $requestModel = new ProjectRequest($pdo);
+    $reviewModel  = new Review($pdo);
 
-    $stmtPending = $pdo->prepare("SELECT COUNT(*) FROM project_requests pr JOIN services s ON pr.service_id = s.id WHERE s.freelancer_id = :id AND pr.status = 'pending'");
-    $stmtPending->execute([':id' => $user['id']]);
-    $stats['pending_requests'] = (int)$stmtPending->fetchColumn();
+    $stats['active_services']      = $serviceModel->countByFreelancer($user['id']);
+    $stats['pending_requests']     = $requestModel->countPendingByFreelancer($user['id']);
+    $stats['in_progress_projects'] = $requestModel->countInProgressByFreelancer($user['id']);
+    $stats['avg_rating']           = $reviewModel->averageRatingByFreelancer($user['id']);
 
-    $stmtProg = $pdo->prepare("SELECT COUNT(*) FROM project_requests pr JOIN services s ON pr.service_id = s.id WHERE s.freelancer_id = :id AND pr.status = 'in_progress'");
-    $stmtProg->execute([':id' => $user['id']]);
-    $stats['in_progress_projects'] = (int)$stmtProg->fetchColumn();
-
-    $stmtRating = $pdo->prepare("SELECT COALESCE(AVG(r.rating), 5.0) FROM reviews r WHERE r.freelancer_id = :id");
-    $stmtRating->execute([':id' => $user['id']]);
-    $stats['avg_rating'] = (float)$stmtRating->fetchColumn();
-
-    // 2. Fetch freelancer's services
-    $svcStmt = $pdo->prepare("SELECT s.*, c.name AS category_name FROM services s JOIN categories c ON s.category_id = c.id WHERE s.freelancer_id = :id ORDER BY s.created_at DESC");
-    $svcStmt->execute([':id' => $user['id']]);
-    $myServices = $svcStmt->fetchAll();
-
-    // 3. Fetch incoming client requests
-    $reqStmt = $pdo->prepare("SELECT pr.*, s.title AS service_title, u.name AS client_name, u.email AS client_email 
-                              FROM project_requests pr 
-                              JOIN services s ON pr.service_id = s.id 
-                              JOIN users u ON pr.client_id = u.id 
-                              WHERE s.freelancer_id = :id 
-                              ORDER BY pr.created_at DESC");
-    $reqStmt->execute([':id' => $user['id']]);
-    $incomingRequests = $reqStmt->fetchAll();
+    $myServices       = $serviceModel->findByFreelancer($user['id']);
+    $incomingRequests = $requestModel->findByFreelancer($user['id']);
 
 } catch (Exception $e) {
     $dbError = "Database Error: Unable to load freelancer metrics. " . $e->getMessage();

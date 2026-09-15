@@ -1,8 +1,10 @@
 <?php
 // service-details.php
-// Displays full details for a single service queried dynamically from database using PDO prepared statements.
+// Displays full service details using Service model methods.
 
 require_once 'includes/Database.php';
+
+use App\Models\Service;
 
 $serviceId = (int)($_GET['id'] ?? 0);
 $service = null;
@@ -12,33 +14,11 @@ $flashMsg = $_GET['msg'] ?? null;
 
 try {
     $pdo = Database::getConnection();
+    $serviceModel = new Service($pdo);
 
-    // Fetch service details using prepared statements
-    $sql = "SELECT s.*, 
-                   c.name AS category_name, 
-                   c.slug AS category_slug, 
-                   u.name AS freelancer_name, 
-                   u.email AS freelancer_email, 
-                   u.avatar_url AS freelancer_avatar,
-                   COALESCE(AVG(r.rating), 5.0) AS rating, 
-                   COUNT(r.id) AS reviews 
-            FROM services s 
-            JOIN categories c ON s.category_id = c.id 
-            JOIN users u ON s.freelancer_id = u.id 
-            LEFT JOIN project_requests pr ON pr.service_id = s.id 
-            LEFT JOIN reviews r ON r.project_request_id = pr.id 
-            WHERE s.id = :id 
-            GROUP BY s.id";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([':id' => $serviceId]);
-    $service = $stmt->fetch();
-
+    $service = $serviceModel->find($serviceId);
     if ($service) {
-        // Fetch gallery images
-        $imgStmt = $pdo->prepare("SELECT * FROM service_images WHERE service_id = :service_id ORDER BY sort_order ASC");
-        $imgStmt->execute([':service_id' => $serviceId]);
-        $serviceImages = $imgStmt->fetchAll();
+        $serviceImages = $serviceModel->getImages($serviceId);
     }
 
 } catch (Exception $e) {

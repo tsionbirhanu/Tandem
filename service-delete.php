@@ -1,8 +1,10 @@
 <?php
 // service-delete.php
-// Handles service deletion via POST-only execution with a GET confirmation step.
+// Handles service deletion using Service model.
 
 require_once 'includes/Database.php';
+
+use App\Models\Service;
 
 $serviceId = (int)($_REQUEST['id'] ?? 0);
 $service = null;
@@ -10,11 +12,9 @@ $error = null;
 
 try {
     $pdo = Database::getConnection();
+    $serviceModel = new Service($pdo);
 
-    // Verify service exists
-    $stmt = $pdo->prepare("SELECT s.id, s.title, c.name AS category_name FROM services s JOIN categories c ON s.category_id = c.id WHERE s.id = :id");
-    $stmt->execute([':id' => $serviceId]);
-    $service = $stmt->fetch();
+    $service = $serviceModel->find($serviceId);
 
     if (!$service) {
         $error = "Service listing not found.";
@@ -27,8 +27,7 @@ try {
 // Perform Deletion on POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $service && !$error) {
     try {
-        $deleteStmt = $pdo->prepare("DELETE FROM services WHERE id = :id");
-        $deleteStmt->execute([':id' => $serviceId]);
+        $serviceModel->delete($serviceId);
 
         header("Location: services.php?msg=deleted");
         exit;
@@ -72,7 +71,6 @@ include 'includes/header.php';
                     <strong>Warning:</strong> This action cannot be undone. Associated gallery images will be removed from the database.
                 </div>
 
-                <!-- POST-only submission form -->
                 <form action="service-delete.php" method="POST">
                     <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
                     <div style="display: flex; gap: var(--space-16); justify-content: center;">

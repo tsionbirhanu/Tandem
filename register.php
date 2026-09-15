@@ -1,11 +1,12 @@
 <?php
 // register.php
-// Registration handler inserting new users into MySQL database using PDO prepared statements.
+// User registration handler using User model.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-// Redirect logged-in users to their dashboard
+use App\Models\User;
+
 if (isLoggedIn()) {
     redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
 }
@@ -35,12 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors['email'] = "Please enter a valid email address.";
     } else {
-        // Check if email is already registered in MySQL
         try {
             $pdo = Database::getConnection();
-            $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
-            $checkStmt->execute([':email' => $email]);
-            if ((int)$checkStmt->fetchColumn() > 0) {
+            $userModel = new User($pdo);
+
+            if ($userModel->emailExists($email)) {
                 $errors['email'] = "This email address is already registered.";
             }
         } catch (Exception $e) {
@@ -65,23 +65,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['confirm_password'] = "Passwords do not match.";
     }
     
-    // Register User
+    // Register User via User model
     if (empty($errors)) {
         try {
             $pdo = Database::getConnection();
+            $userModel = new User($pdo);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, role, created_at) VALUES (:name, :email, :password_hash, :role, NOW())");
-            $insertStmt->execute([
-                ':name'          => $name,
-                ':email'         => $email,
-                ':password_hash' => $hashed_password,
-                ':role'          => $role,
+
+            $newUserId = $userModel->create([
+                'name'          => $name,
+                'email'         => $email,
+                'password_hash' => $hashed_password,
+                'role'          => $role,
             ]);
             
-            $newUserId = (int)$pdo->lastInsertId();
-
-            // Auto log-in user upon registration
             session_regenerate_id(true);
             $_SESSION['user_id']    = $newUserId;
             $_SESSION['user_name']  = $name;

@@ -1,9 +1,14 @@
 <?php
 // admin-dashboard.php
-// Full SaaS Admin Panel with sidebar navigation, system metrics, and user management table.
+// Admin Panel refactored to use User, Service, ProjectRequest, and Review models.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
+
+use App\Models\User;
+use App\Models\Service;
+use App\Models\ProjectRequest;
+use App\Models\Review;
 
 requireRole('admin');
 
@@ -17,28 +22,21 @@ $stats = [
     'reviews'  => 0,
 ];
 $allUsers = [];
-$recentServices = [];
 
 try {
     $pdo = Database::getConnection();
 
-    // 1. System stats summary queries
-    $stats['users']    = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-    $stats['services'] = (int)$pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
-    $stats['requests'] = (int)$pdo->query("SELECT COUNT(*) FROM project_requests")->fetchColumn();
-    $stats['reviews']  = (int)$pdo->query("SELECT COUNT(*) FROM reviews")->fetchColumn();
+    $userModel    = new User($pdo);
+    $serviceModel = new Service($pdo);
+    $requestModel = new ProjectRequest($pdo);
+    $reviewModel  = new Review($pdo);
 
-    // 2. Fetch users directory
-    $uStmt = $pdo->query("SELECT id, name, email, role, created_at FROM users ORDER BY id ASC");
-    $allUsers = $uStmt->fetchAll();
+    $stats['users']    = $userModel->count();
+    $stats['services'] = $serviceModel->count();
+    $stats['requests'] = $requestModel->count();
+    $stats['reviews']  = $reviewModel->count();
 
-    // 3. Fetch recent services
-    $sStmt = $pdo->query("SELECT s.id, s.title, s.price, c.name AS category_name, u.name AS freelancer_name 
-                          FROM services s 
-                          JOIN categories c ON s.category_id = c.id 
-                          JOIN users u ON s.freelancer_id = u.id 
-                          ORDER BY s.created_at DESC LIMIT 5");
-    $recentServices = $sStmt->fetchAll();
+    $allUsers = $userModel->all();
 
 } catch (Exception $e) {
     $dbError = "Database Error: Unable to fetch system administration data. " . $e->getMessage();

@@ -1,9 +1,12 @@
 <?php
 // client-dashboard.php
-// Full SaaS dashboard for Client accounts with responsive sidebar & PDO stats summary.
+// Client SaaS Dashboard refactored to use ProjectRequest and Review models.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
+
+use App\Models\ProjectRequest;
+use App\Models\Review;
 
 requireRole('client');
 
@@ -21,33 +24,15 @@ $requests = [];
 try {
     $pdo = Database::getConnection();
 
-    // 1. Stats summary queries
-    $stmtActive = $pdo->prepare("SELECT COUNT(*) FROM project_requests WHERE client_id = :id AND status IN ('pending', 'accepted', 'in_progress')");
-    $stmtActive->execute([':id' => $user['id']]);
-    $stats['active_requests'] = (int)$stmtActive->fetchColumn();
+    $requestModel = new ProjectRequest($pdo);
+    $reviewModel  = new Review($pdo);
 
-    $stmtCompleted = $pdo->prepare("SELECT COUNT(*) FROM project_requests WHERE client_id = :id AND status = 'completed'");
-    $stmtCompleted->execute([':id' => $user['id']]);
-    $stats['completed_projects'] = (int)$stmtCompleted->fetchColumn();
+    $stats['active_requests']    = $requestModel->countActiveByClient($user['id']);
+    $stats['completed_projects'] = $requestModel->countCompletedByClient($user['id']);
+    $stats['reviews_given']      = $reviewModel->countByClient($user['id']);
+    $stats['total_spent']        = $requestModel->totalSpentByClient($user['id']);
 
-    $stmtReviews = $pdo->prepare("SELECT COUNT(*) FROM reviews WHERE client_id = :id");
-    $stmtReviews->execute([':id' => $user['id']]);
-    $stats['reviews_given'] = (int)$stmtReviews->fetchColumn();
-
-    $stmtSpent = $pdo->prepare("SELECT COALESCE(SUM(s.price), 0) FROM project_requests pr JOIN services s ON pr.service_id = s.id WHERE pr.client_id = :id AND pr.status = 'completed'");
-    $stmtSpent->execute([':id' => $user['id']]);
-    $stats['total_spent'] = (float)$stmtSpent->fetchColumn();
-
-    // 2. Fetch recent project requests
-    $reqStmt = $pdo->prepare("SELECT pr.*, s.title AS service_title, s.price, c.name AS category_name, u.name AS freelancer_name 
-                              FROM project_requests pr 
-                              JOIN services s ON pr.service_id = s.id 
-                              JOIN categories c ON s.category_id = c.id
-                              JOIN users u ON s.freelancer_id = u.id 
-                              WHERE pr.client_id = :client_id 
-                              ORDER BY pr.created_at DESC");
-    $reqStmt->execute([':client_id' => $user['id']]);
-    $requests = $reqStmt->fetchAll();
+    $requests = $requestModel->findByClient($user['id']);
 
 } catch (Exception $e) {
     $dbError = "Database Error: Unable to fetch dashboard metrics. " . $e->getMessage();

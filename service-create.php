@@ -1,8 +1,12 @@
 <?php
 // service-create.php
-// Form and handler for creating a new service listing using PDO prepared statements.
+// Form and handler for creating a new service listing using Category, User, and Service models.
 
 require_once 'includes/Database.php';
+
+use App\Models\Category;
+use App\Models\User;
+use App\Models\Service;
 
 $errors = [];
 $title = '';
@@ -18,9 +22,11 @@ $dbError = null;
 try {
     $pdo = Database::getConnection();
 
-    // Fetch dropdown options
-    $categories = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
-    $freelancers = $pdo->query("SELECT id, name, email FROM users WHERE role = 'freelancer' ORDER BY name ASC")->fetchAll();
+    $categoryModel = new Category($pdo);
+    $userModel     = new User($pdo);
+
+    $categories  = $categoryModel->all();
+    $freelancers = $userModel->findByRole('freelancer');
 
 } catch (Exception $e) {
     $dbError = "Database Connection Error: Unable to load form requirements right now.";
@@ -60,26 +66,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
         $errors['description'] = "Description must be at least 20 characters long.";
     }
 
-    // Insert into database if validation passes
+    // Insert into database via Service model
     if (empty($errors)) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO services (freelancer_id, category_id, title, description, price, created_at) VALUES (:freelancer_id, :category_id, :title, :description, :price, NOW())");
-            $stmt->execute([
-                ':freelancer_id' => $freelancer_id,
-                ':category_id'   => $category_id,
-                ':title'         => $title,
-                ':description'   => $description,
-                ':price'         => (float)$price,
+            $serviceModel = new Service($pdo);
+
+            $newServiceId = $serviceModel->create([
+                'freelancer_id' => $freelancer_id,
+                'category_id'   => $category_id,
+                'title'         => $title,
+                'description'   => $description,
+                'price'         => (float)$price,
             ]);
 
-            $newServiceId = (int)$pdo->lastInsertId();
-
             if (!empty($image_path)) {
-                $imgStmt = $pdo->prepare("INSERT INTO service_images (service_id, image_path, sort_order) VALUES (:service_id, :image_path, 1)");
-                $imgStmt->execute([
-                    ':service_id' => $newServiceId,
-                    ':image_path' => $image_path,
-                ]);
+                $serviceModel->addImage($newServiceId, $image_path);
             }
 
             header("Location: service-details.php?id={$newServiceId}&msg=created");

@@ -1,28 +1,17 @@
 <?php
 // index.php
-// Homepage of Tandem featuring top-rated service listings queried from MySQL via PDO.
+// Homepage of Tandem featuring top-rated service listings queried via Service model.
 
 require_once 'includes/Database.php';
+
+use App\Models\Service;
 
 $featuredServices = [];
 
 try {
     $pdo = Database::getConnection();
-    $sql = "SELECT s.*, 
-                   c.name AS category_name, 
-                   u.name AS freelancer_name, 
-                   COALESCE(AVG(r.rating), 5.0) AS rating, 
-                   COUNT(r.id) AS reviews 
-            FROM services s 
-            JOIN categories c ON s.category_id = c.id 
-            JOIN users u ON s.freelancer_id = u.id 
-            LEFT JOIN project_requests pr ON pr.service_id = s.id 
-            LEFT JOIN reviews r ON r.project_request_id = pr.id 
-            GROUP BY s.id 
-            ORDER BY rating DESC, s.created_at DESC 
-            LIMIT 3";
-    $stmt = $pdo->query($sql);
-    $featuredServices = $stmt->fetchAll();
+    $serviceModel = new Service($pdo);
+    $featuredServices = $serviceModel->featured(3);
 } catch (Exception $e) {
     $featuredServices = [];
 }

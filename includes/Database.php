@@ -2,6 +2,8 @@
 // includes/Database.php
 // Singleton PDO database connection wrapper class.
 
+require_once __DIR__ . '/autoloader.php';
+
 class Database {
     /**
      * @var PDO|null Shared singleton instance.

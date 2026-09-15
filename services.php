@@ -1,8 +1,11 @@
 <?php
 // services.php
-// Lists all services from the database with category filtering and database error handling.
+// Lists all services using Category and Service models.
 
 require_once 'includes/Database.php';
+
+use App\Models\Category;
+use App\Models\Service;
 
 $dbError = null;
 $categories = [];
@@ -12,49 +15,15 @@ $flashMsg = $_GET['msg'] ?? null;
 
 try {
     $pdo = Database::getConnection();
+    
+    $categoryModel = new Category($pdo);
+    $serviceModel  = new Service($pdo);
 
-    // 1. Fetch all categories for filter navigation
-    $catStmt = $pdo->query("SELECT id, name, slug FROM categories ORDER BY name ASC");
-    $categories = $catStmt->fetchAll();
-
-    // 2. Fetch services (filtered by category slug if provided) using prepared statements
-    if (!empty($activeCategorySlug)) {
-        $sql = "SELECT s.*, 
-                       c.name AS category_name, 
-                       c.slug AS category_slug, 
-                       u.name AS freelancer_name, 
-                       COALESCE(AVG(r.rating), 5.0) AS rating, 
-                       COUNT(r.id) AS reviews 
-                FROM services s 
-                JOIN categories c ON s.category_id = c.id 
-                JOIN users u ON s.freelancer_id = u.id 
-                LEFT JOIN project_requests pr ON pr.service_id = s.id 
-                LEFT JOIN reviews r ON r.project_request_id = pr.id 
-                WHERE c.slug = :slug 
-                GROUP BY s.id 
-                ORDER BY s.created_at DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([':slug' => $activeCategorySlug]);
-    } else {
-        $sql = "SELECT s.*, 
-                       c.name AS category_name, 
-                       c.slug AS category_slug, 
-                       u.name AS freelancer_name, 
-                       COALESCE(AVG(r.rating), 5.0) AS rating, 
-                       COUNT(r.id) AS reviews 
-                FROM services s 
-                JOIN categories c ON s.category_id = c.id 
-                JOIN users u ON s.freelancer_id = u.id 
-                LEFT JOIN project_requests pr ON pr.service_id = s.id 
-                LEFT JOIN reviews r ON r.project_request_id = pr.id 
-                GROUP BY s.id 
-                ORDER BY s.created_at DESC";
-        $stmt = $pdo->query($sql);
-    }
-    $services = $stmt->fetchAll();
+    $categories = $categoryModel->all();
+    $services   = $serviceModel->all($activeCategorySlug);
 
 } catch (Exception $e) {
-    $dbError = "Database Connection Error: Unable to retrieve services at this time. Please verify that your MySQL server is running.";
+    $dbError = "Database Connection Error: Unable to retrieve services at this time.";
 }
 
 include 'includes/header.php';
@@ -63,7 +32,6 @@ include 'includes/header.php';
 <main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
     
     <?php if ($dbError): ?>
-        <!-- Styled Database Error Card -->
         <div class="sg-card" style="max-width: 650px; margin: 0 auto; text-align: center; padding: var(--space-48) var(--space-32);">
             <div style="width: 64px; height: 64px; background-color: rgba(245, 101, 101, 0.12); color: var(--color-error); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-24);">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -80,7 +48,6 @@ include 'includes/header.php';
         </div>
     <?php else: ?>
 
-        <!-- Action Header & Navigation -->
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-16); margin-bottom: var(--space-24);">
             <div>
                 <h1 style="margin-bottom: var(--space-4);">All Services</h1>
@@ -164,7 +131,6 @@ include 'includes/header.php';
                     </article>
                 <?php endforeach; ?>
             <?php else: ?>
-                <!-- Empty State -->
                 <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: var(--space-24); padding: var(--space-48) 0;">
                     <div style="text-align: center;">
                         <h3 class="empty-title">No services found</h3>

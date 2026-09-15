@@ -1,11 +1,12 @@
 <?php
 // login.php
-// Handles user authentication using PDO prepared statements and password_verify().
+// User authentication handler using User model.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-// Redirect logged-in users to their dashboard
+use App\Models\User;
+
 if (isLoggedIn()) {
     redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
 }
@@ -29,16 +30,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['password'] = "Password is required.";
     }
 
-    // Authenticate with MySQL Database
+    // Authenticate via User model
     if (empty($errors)) {
         try {
             $pdo = Database::getConnection();
-            $stmt = $pdo->prepare("SELECT id, name, email, password_hash, role FROM users WHERE email = :email LIMIT 1");
-            $stmt->execute([':email' => $email]);
-            $user = $stmt->fetch();
+            $userModel = new User($pdo);
+            $user = $userModel->findByEmail($email);
 
             if ($user && password_verify($password, $user['password_hash'])) {
-                // Successful login: regenerate session ID to prevent session fixation
                 session_regenerate_id(true);
 
                 $_SESSION['user_id']    = (int)$user['id'];

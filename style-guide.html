@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tandem Style Guide</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style-guide.css">
+</head>
+<body>
+
+  <header class="sg-header">
+    <div class="sg-container">
+      <h1>Tandem Design System</h1>
+      <p>A living reference for all reusable UI components.</p>
+    </div>
+  </header>
+
+  <main class="sg-container">
+
+    <!-- Typography -->
+    <section class="sg-section">
+      <h2>1. Typography</h2>
+      <div class="sg-card">
+        <h1>Heading 1 - Fraunces</h1>
+        <h2>Heading 2 - Fraunces</h2>
+        <h3>Heading 3 - Fraunces</h3>
+        <h4>Heading 4 - Fraunces</h4>
+        <h5>Heading 5 - Fraunces</h5>
+        <h6>Heading 6 - Fraunces</h6>
+        <p><strong>Body Text - Inter:</strong> Tandem should feel calm, trustworthy, and sophisticated. Unlike the visually noisy, chaotic, and hyper-transactional feel of typical freelance marketplaces, Tandem is a curated space for high-quality professional engagements.</p>
+        <p class="text-small">Small Text - Inter: Used for metadata, fine print, and supplementary details.</p>
+        <p class="text-caption">Caption Text - Inter: Used for tiny tags or timestamps.</p>
+      </div>
+    </section>
+
+    <!-- Buttons -->
+    <section class="sg-section">
+      <h2>2. Buttons</h2>
+      <div class="sg-card">
+        <div class="sg-grid-auto">
+          <div>
+            <p class="text-small"><strong>Primary</strong></p>
+            <div class="sg-flex-col">
+              <button class="btn btn-primary">Default</button>
+              <button class="btn btn-primary sg-hover-sim">Hover</button>
+              <button class="btn btn-primary sg-active-sim">Active</button>
+              <button class="btn btn-primary" disabled>Disabled</button>
+            </div>
+          </div>
+          <div>
+            <p class="text-small"><strong>Secondary</strong></p>
+            <div class="sg-flex-col">
+              <button class="btn btn-secondary">Default</button>
+              <button class="btn btn-secondary sg-hover-sim">Hover</button>
+              <button class="btn btn-secondary sg-active-sim">Active</button>
+              <button class="btn btn-secondary" disabled>Disabled</button>
+            </div>
+          </div>
+          <div>
+            <p class="text-small"><strong>Ghost</strong></p>
+            <div class="sg-flex-col">
+              <button class="btn btn-ghost">Default</button>
+              <button class="btn btn-ghost sg-hover-sim">Hover</button>
+              <button class="btn btn-ghost sg-active-sim">Active</button>
+              <button class="btn btn-ghost" disabled>Disabled</button>
+            </div>
+          </div>
+          <div>
+            <p class="text-small"><strong>Danger</strong></p>
+            <div class="sg-flex-col">
+              <button class="btn btn-danger">Default</button>
+              <button class="btn btn-danger sg-hover-sim">Hover</button>
+              <button class="btn btn-danger sg-active-sim">Active</button>
+              <button class="btn btn-danger" disabled>Disabled</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Form Inputs -->
+    <section class="sg-section">
+      <h2>3. Form Inputs</h2>
+      <div class="sg-card">
+        <div class="form-group">
+          <label class="form-label" for="text-input">Text Input</label>
+          <input type="text" id="text-input" class="form-input" placeholder="e.g. Graphic Designer">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="text-input-focus">Text Input (Focus State)</label>
+          <input type="text" id="text-input-focus" class="form-input sg-focus-sim" placeholder="Typing..." value="Focus state">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="text-input-error">Text Input (Error State)</label>
+          <input type="text" id="text-input-error" class="form-input form-input-error" placeholder="Required" value="Invalid input">
+          <div class="form-error-msg">This field is required.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-input">Select Dropdown</label>
+          <select id="select-input" class="form-select">
+            <option>Select a category</option>
+            <option>Design</option>
+            <option>Development</option>
+            <option>Writing</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="textarea-input">Textarea</label>
+          <textarea id="textarea-input" class="form-input" rows="3" placeholder="Describe your project..."></textarea>
+        </div>
+
+        <div class="sg-flex-row">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="checkbox1">
+            <label class="form-check-label" for="checkbox1">Checkbox Option 1</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="checkbox2" checked>
+            <label class="form-check-label" for="checkbox2">Checkbox Checked</label>
+          </div>
+        </div>
+
+        <div class="sg-flex-row" style="margin-top: 1rem;">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="radioGrp" id="radio1">
+            <label class="form-check-label" for="radio1">Radio Option 1</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="radioGrp" id="radio2" checked>
+            <label class="form-check-label" for="radio2">Radio Checked</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cards -->
+    <section class="sg-section">
+      <h2>4. Cards & Listings</h2>
+      <div class="sg-grid-2">
+        
+        <!-- Service Card -->
+        <div>
+          <p class="text-small" style="margin-bottom: 0.5rem;"><strong>Service Card</strong></p>
+          <article class="card-listing">
+            <div class="card-image-placeholder"></div>
+            <div class="card-content">
+              <div class="card-badge-row">
+                <span class="badge badge-neutral">Brand Identity</span>
+                <span class="badge badge-success">Top Rated</span>
+              </div>
+              <h3 class="card-title">Minimalist Logo & Brand Identity System</h3>
+              <p class="card-desc">Complete brand guidelines, logo suite, and typography tailored for premium D2C brands.</p>
+              <div class="card-footer">
+                <div class="star-rating">
+                  <span class="star filled">★</span>
+                  <span class="star filled">★</span>
+                  <span class="star filled">★</span>
+                  <span class="star filled">★</span>
+                  <span class="star filled">★</span>
+                  <span class="rating-text">5.0 (42)</span>
+                </div>
+                <div class="card-price">Starting at $1,200</div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Freelancer Profile Card -->
+        <div>
+          <p class="text-small" style="margin-bottom: 0.5rem;"><strong>Freelancer Profile Card</strong></p>
+          <article class="card-profile">
+            <div class="profile-header">
+              <div class="avatar-lg"></div>
+              <div class="profile-info">
+                <h3 class="profile-name">Elena Rodriguez</h3>
+                <p class="profile-title">Senior Visual Designer</p>
+                <p class="profile-location">Barcelona, Spain</p>
+              </div>
+            </div>
+            <p class="profile-bio">Specializing in calm, sophisticated brand identities for sustainable architecture firms and wellness brands.</p>
+            <div class="profile-skills">
+              <span class="badge badge-outline">Art Direction</span>
+              <span class="badge badge-outline">Typography</span>
+              <span class="badge badge-outline">Figma</span>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn-primary" style="width: 100%;">Hire Elena</button>
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;">View Portfolio</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Badges & Tags -->
+    <section class="sg-section">
+      <h2>5. Badges & Tags</h2>
+      <div class="sg-card sg-flex-row">
+        <span class="badge badge-primary">Primary</span>
+        <span class="badge badge-neutral">Neutral</span>
+        <span class="badge badge-success">Success</span>
+        <span class="badge badge-warning">Warning</span>
+        <span class="badge badge-danger">Danger</span>
+        <span class="badge badge-outline">Outline</span>
+      </div>
+    </section>
+
+    <!-- Alerts / Toasts -->
+    <section class="sg-section">
+      <h2>6. Alerts & Toasts</h2>
+      <div class="sg-flex-col">
+        <div class="alert alert-info">
+          <strong>Info:</strong> Your profile is currently under review by our curation team.
+        </div>
+        <div class="alert alert-success">
+          <strong>Success:</strong> Payment for Milestone 1 has been released.
+        </div>
+        <div class="alert alert-warning">
+          <strong>Warning:</strong> You have 2 days left to deliver the initial concepts.
+        </div>
+        <div class="alert alert-error">
+          <strong>Error:</strong> Failed to upload the attachment. Please try again.
+        </div>
+      </div>
+    </section>
+
+    <!-- Pagination -->
+    <section class="sg-section">
+      <h2>7. Pagination Control</h2>
+      <div class="sg-card">
+        <nav class="pagination" aria-label="Pagination">
+          <button class="pagination-btn" disabled>Prev</button>
+          <button class="pagination-num active">1</button>
+          <button class="pagination-num">2</button>
+          <button class="pagination-num">3</button>
+          <span class="pagination-dots">...</span>
+          <button class="pagination-num">8</button>
+          <button class="pagination-btn">Next</button>
+        </nav>
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    <section class="sg-section">
+      <h2>8. Empty State Illustration</h2>
+      <div class="sg-card">
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <h3 class="empty-title">No active projects</h3>
+          <p class="empty-desc">You don't have any ongoing projects right now. Browse services to get started.</p>
+          <button class="btn btn-primary">Browse Services</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <section class="sg-section">
+      <h2>9. Loading Skeleton (Card Grid)</h2>
+      <div class="sg-grid-2">
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-img"></div>
+          <div class="skeleton-content">
+            <div class="skeleton skeleton-text" style="width: 30%;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%; height: 1.5rem; margin: 0.5rem 0;"></div>
+            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+            <div class="skeleton skeleton-text" style="width: 90%;"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton skeleton-text" style="width: 40%;"></div>
+              <div class="skeleton skeleton-text" style="width: 30%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-img"></div>
+          <div class="skeleton-content">
+            <div class="skeleton skeleton-text" style="width: 30%;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%; height: 1.5rem; margin: 0.5rem 0;"></div>
+            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+            <div class="skeleton skeleton-text" style="width: 90%;"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton skeleton-text" style="width: 40%;"></div>
+              <div class="skeleton skeleton-text" style="width: 30%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal Shell -->
+    <section class="sg-section">
+      <h2>10. Modal Shell</h2>
+      <div class="modal-shell-demo">
+        <div class="modal-backdrop">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">Send Proposal</h3>
+              <button class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label">Cover Letter</label>
+                <textarea class="form-input" rows="4" placeholder="Introduce yourself..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-primary">Submit Proposal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

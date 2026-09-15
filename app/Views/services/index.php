@@ -12,7 +12,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
         </div>
         
         <?php if (isLoggedIn() && in_array($_SESSION['user_role'] ?? '', ['freelancer', 'admin'], true)): ?>
-            <a href="/service/create" class="btn btn-primary">+ Offer New Service</a>
+            <a href="/services/create" class="btn btn-primary">+ Offer New Service</a>
         <?php endif; ?>
     </div>
 
@@ -73,7 +73,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
     <div class="sg-grid-auto">
         <?php if (!empty($services)): ?>
             <?php foreach ($services as $service): ?>
-                <a href="/service/details?id=<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
+                <a href="/services/<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
                     <article class="card-listing" style="height: 100%;">
                         <div class="card-image-placeholder"></div>
                         <div class="card-content">

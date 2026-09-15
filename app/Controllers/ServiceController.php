@@ -46,8 +46,8 @@ class ServiceController {
         ]);
     }
 
-    public function show(): void {
-        $id = (int)($_GET['id'] ?? 0);
+    public function show(int|string $id): void {
+        $id = (int)$id;
 
         if ($id <= 0) {
             header('Location: /services');
@@ -74,7 +74,7 @@ class ServiceController {
 
         if (!$service && !$dbError) {
             http_response_code(404);
-            render('errors/404', ['path' => "/service/details?id={$id}"]);
+            render('errors/404', ['path' => "/services/{$id}"]);
             return;
         }
 
@@ -150,7 +150,7 @@ class ServiceController {
                 ]);
 
                 setFlash('success', 'Service created successfully!');
-                header("Location: /service/details?id={$serviceId}");
+                header("Location: /services/{$serviceId}");
                 exit;
             }
         } catch (Exception $e) {
@@ -168,10 +168,10 @@ class ServiceController {
         ]);
     }
 
-    public function showEdit(): void {
+    public function showEdit(int|string $id): void {
         requireRole(['freelancer', 'admin']);
 
-        $id = (int)($_GET['id'] ?? 0);
+        $id = (int)$id;
         if ($id <= 0) {
             header('Location: /services');
             exit;
@@ -194,7 +194,7 @@ class ServiceController {
 
         if (!$service && !$dbError) {
             http_response_code(404);
-            render('errors/404', ['path' => "/service/edit?id={$id}"]);
+            render('errors/404', ['path' => "/services/{$id}/edit"]);
             return;
         }
 
@@ -210,10 +210,10 @@ class ServiceController {
         ]);
     }
 
-    public function edit(): void {
+    public function edit(int|string $id): void {
         requireRole(['freelancer', 'admin']);
 
-        $id         = (int)($_POST['id'] ?? 0);
+        $id         = (int)$id;
         $title      = trim($_POST['title'] ?? '');
         $categoryId = (int)($_POST['category_id'] ?? 0);
         $price      = trim($_POST['price'] ?? '');
@@ -258,7 +258,7 @@ class ServiceController {
                 ]);
 
                 setFlash('success', 'Service updated successfully!');
-                header("Location: /service/details?id={$id}");
+                header("Location: /services/{$id}");
                 exit;
             }
         } catch (Exception $e) {
@@ -277,10 +277,10 @@ class ServiceController {
         ]);
     }
 
-    public function showDelete(): void {
+    public function showDelete(int|string $id): void {
         requireRole(['freelancer', 'admin']);
 
-        $id = (int)($_GET['id'] ?? 0);
+        $id = (int)$id;
         if ($id <= 0) {
             header('Location: /services');
             exit;
@@ -299,7 +299,7 @@ class ServiceController {
 
         if (!$service && !$dbError) {
             http_response_code(404);
-            render('errors/404', ['path' => "/service/delete?id={$id}"]);
+            render('errors/404', ['path' => "/services/{$id}/delete"]);
             return;
         }
 
@@ -309,10 +309,10 @@ class ServiceController {
         ]);
     }
 
-    public function delete(): void {
+    public function delete(int|string $id): void {
         requireRole(['freelancer', 'admin']);
 
-        $id = (int)($_POST['id'] ?? 0);
+        $id = (int)$id;
         $confirm = $_POST['confirm'] ?? '';
 
         if ($id <= 0) {
@@ -322,7 +322,7 @@ class ServiceController {
 
         if ($confirm !== 'yes') {
             setFlash('error', 'Deletion cancelled.');
-            header("Location: /service/details?id={$id}");
+            header("Location: /services/{$id}");
             exit;
         }
 
@@ -336,7 +336,7 @@ class ServiceController {
             exit;
         } catch (Exception $e) {
             setFlash('error', 'Failed to delete service: ' . $e->getMessage());
-            header("Location: /service/details?id={$id}");
+            header("Location: /services/{$id}");
             exit;
         }
     }

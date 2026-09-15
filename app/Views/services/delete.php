@@ -7,7 +7,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
     <div style="max-width: 500px; margin: 0 auto;">
         
         <div style="margin-bottom: var(--space-24);">
-            <a href="/service/details?id=<?php echo (int)($service['id'] ?? 0); ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
+            <a href="/services/<?php echo (int)($service['id'] ?? 0); ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
                 &larr; Back to Service Details
             </a>
         </div>
@@ -34,7 +34,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                     <strong>Warning:</strong> This action cannot be undone.
                 </div>
 
-                <form action="/service/delete" method="POST">
+                <form action="/services/<?php echo (int)$service['id']; ?>/delete" method="POST">
                     <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
                     <input type="hidden" name="confirm" value="yes">
 
@@ -42,7 +42,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                         <button type="submit" class="btn btn-primary" style="flex: 1; background-color: var(--color-error); border-color: var(--color-error);">
                             Yes, Delete Service
                         </button>
-                        <a href="/service/details?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                        <a href="/services/<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="flex: 1; text-align: center;">
                             Cancel
                         </a>
                     </div>

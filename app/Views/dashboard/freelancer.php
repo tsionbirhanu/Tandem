@@ -32,7 +32,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                     </a>
                 </li>
                 <li>
-                    <a href="/service/create" class="sidebar-link">
+                    <a href="/services/create" class="sidebar-link">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         Create Service Listing
                     </a>
@@ -62,7 +62,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                 <h1 style="font-size: var(--text-h2); margin-bottom: var(--space-4);">Freelancer Workspace</h1>
                 <p class="text-small" style="color: var(--color-text-muted);">Track your offered services, client requests, and client rating metrics.</p>
             </div>
-            <a href="/service/create" class="btn btn-primary">+ Create New Service</a>
+            <a href="/services/create" class="btn btn-primary">+ Create New Service</a>
         </div>
 
         <?php if ($dbError): ?>
@@ -136,7 +136,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                             <?php foreach ($myServices as $service): ?>
                                 <tr style="border-bottom: 1px solid var(--color-border);">
                                     <td style="padding: var(--space-12); font-weight: 600;">
-                                        <a href="/service/details?id=<?php echo (int)$service['id']; ?>" style="color: var(--color-primary); text-decoration: none;">
+                                        <a href="/services/<?php echo (int)$service['id']; ?>" style="color: var(--color-primary); text-decoration: none;">
                                             <?php echo htmlspecialchars($service['title'], ENT_QUOTES, 'UTF-8'); ?>
                                         </a>
                                     </td>
@@ -148,8 +148,8 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                                     </td>
                                     <td style="padding: var(--space-12);">
                                         <div style="display: flex; gap: var(--space-8);">
-                                            <a href="/service/edit?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="padding: var(--space-4) var(--space-8); font-size: 0.8rem;">Edit</a>
-                                            <a href="/service/delete?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="padding: var(--space-4) var(--space-8); font-size: 0.8rem; color: var(--color-error); border-color: var(--color-error);">Delete</a>
+                                            <a href="/services/<?php echo (int)$service['id']; ?>/edit" class="btn btn-secondary" style="padding: var(--space-4) var(--space-8); font-size: 0.8rem;">Edit</a>
+                                            <a href="/services/<?php echo (int)$service['id']; ?>/delete" class="btn btn-secondary" style="padding: var(--space-4) var(--space-8); font-size: 0.8rem; color: var(--color-error); border-color: var(--color-error);">Delete</a>
                                         </div>
                                     </td>
                                 </tr>

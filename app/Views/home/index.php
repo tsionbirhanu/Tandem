@@ -21,7 +21,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
         <div class="sg-grid-auto" style="margin-top: var(--space-32);">
             <?php if (!empty($featuredServices)): ?>
                 <?php foreach ($featuredServices as $service): ?>
-                    <a href="/service/details?id=<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
+                    <a href="/services/<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
                         <article class="card-listing" style="height: 100%;">
                             <div class="card-image-placeholder"></div>
                             <div class="card-content">

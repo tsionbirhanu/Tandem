@@ -1,6 +1,6 @@
 <?php
 // routes/web.php
-// Web Route definitions and lightweight Router matching for Tandem MVC.
+// Dynamic HTTP Router supporting GET, POST, and named route parameters (e.g. /services/{id}).
 
 namespace Routes;
 
@@ -22,9 +22,16 @@ class Router {
     }
 
     private function addRoute(string $method, string $path, array $handler): void {
+        $normalizedPath = rtrim($path, '/') ?: '/';
+        
+        // Convert route pattern like '/services/{id}' into regex '~^/services/([^/]+)$~'
+        $pattern = preg_replace('/\{[a-zA-Z0-9_]+\}/', '([^/]+)', $normalizedPath);
+        $regex = '~^' . $pattern . '$~';
+
         $this->routes[] = [
             'method'  => strtoupper($method),
-            'path'    => rtrim($path, '/') ?: '/',
+            'path'    => $normalizedPath,
+            'regex'   => $regex,
             'handler' => $handler,
         ];
     }
@@ -42,10 +49,14 @@ class Router {
         }
 
         foreach ($this->routes as $route) {
-            if ($route['method'] === $requestMethod && $route['path'] === $path) {
+            if ($route['method'] === $requestMethod && preg_match($route['regex'], $path, $matches)) {
+                array_shift($matches); // Remove full regex match
+                
                 [$class, $method] = $route['handler'];
                 $controller = new $class();
-                $controller->$method();
+                
+                // Call controller action passing extracted route parameters as arguments
+                call_user_func_array([$controller, $method], $matches);
                 return;
             }
         }
@@ -58,7 +69,11 @@ class Router {
 
 $router = new Router();
 
+// -----------------------------------------------------------------------------
 // Route Declarations
+// -----------------------------------------------------------------------------
+
+// Home Route
 $router->get('/', [HomeController::class, 'index']);
 
 // Auth Routes
@@ -69,15 +84,16 @@ $router->post('/register', [AuthController::class, 'register']);
 $router->get('/logout', [AuthController::class, 'logout']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
-// Service Routes
+// Service Routes (Static & Dynamic RESTful parameters)
 $router->get('/services', [ServiceController::class, 'index']);
-$router->get('/service/details', [ServiceController::class, 'show']);
-$router->get('/service/create', [ServiceController::class, 'showCreate']);
-$router->post('/service/create', [ServiceController::class, 'create']);
-$router->get('/service/edit', [ServiceController::class, 'showEdit']);
-$router->post('/service/edit', [ServiceController::class, 'edit']);
-$router->get('/service/delete', [ServiceController::class, 'showDelete']);
-$router->post('/service/delete', [ServiceController::class, 'delete']);
+$router->get('/services/create', [ServiceController::class, 'showCreate']);
+$router->post('/services/create', [ServiceController::class, 'create']);
+
+$router->get('/services/{id}', [ServiceController::class, 'show']);
+$router->get('/services/{id}/edit', [ServiceController::class, 'showEdit']);
+$router->post('/services/{id}/edit', [ServiceController::class, 'edit']);
+$router->get('/services/{id}/delete', [ServiceController::class, 'showDelete']);
+$router->post('/services/{id}/delete', [ServiceController::class, 'delete']);
 
 // Contact Routes
 $router->get('/contact', [MessageController::class, 'showContact']);

@@ -37,10 +37,10 @@ if (isLoggedIn() && $service) {
                         
                         <?php if ($isOwnerOrAdmin): ?>
                             <div style="display: flex; gap: var(--space-8);">
-                                <a href="/service/edit?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem;">
+                                <a href="/services/<?php echo (int)$service['id']; ?>/edit" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem;">
                                     Edit Service
                                 </a>
-                                <a href="/service/delete?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem; color: var(--color-error); border-color: var(--color-error);">
+                                <a href="/services/<?php echo (int)$service['id']; ?>/delete" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem; color: var(--color-error); border-color: var(--color-error);">
                                     Delete
                                 </a>
                             </div>

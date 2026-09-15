@@ -24,7 +24,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
         <?php endif; ?>
 
         <div class="sg-card">
-            <form action="/service/create" method="POST" novalidate>
+            <form action="/services/create" method="POST" novalidate>
                 
                 <div class="form-group">
                     <label class="form-label" for="title">Service Title</label>

@@ -2,6 +2,15 @@
 // public/index.php
 // Single Entry Point for the Tandem MVC Application.
 
+// PHP Built-in Server static file fallback
+if (php_sapi_name() === 'cli-server') {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $file = __DIR__ . $path;
+    if ($path !== '/' && file_exists($file) && !is_dir($file)) {
+        return false;
+    }
+}
+
 // Standardize directory separator & base path
 define('BASE_PATH', dirname(__DIR__));
 

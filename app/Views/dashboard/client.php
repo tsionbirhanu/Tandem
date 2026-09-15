@@ -133,7 +133,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
                             <?php foreach ($projectRequests as $req): ?>
                                 <tr style="border-bottom: 1px solid var(--color-border);">
                                     <td style="padding: var(--space-12); font-weight: 600;">
-                                        <a href="/service/details?id=<?php echo (int)$req['service_id']; ?>" style="color: var(--color-primary); text-decoration: none;">
+                                        <a href="/services/<?php echo (int)$req['service_id']; ?>" style="color: var(--color-primary); text-decoration: none;">
                                             <?php echo htmlspecialchars($req['service_title'], ENT_QUOTES, 'UTF-8'); ?>
                                         </a>
                                     </td>

@@ -7,7 +7,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
     <div style="max-width: 600px; margin: 0 auto;">
         
         <div style="margin-bottom: var(--space-24);">
-            <a href="/service/details?id=<?php echo (int)($service['id'] ?? 0); ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
+            <a href="/services/<?php echo (int)($service['id'] ?? 0); ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
                 &larr; Back to Service Details
             </a>
         </div>
@@ -25,7 +25,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
 
         <?php if ($service): ?>
             <div class="sg-card">
-                <form action="/service/edit" method="POST" novalidate>
+                <form action="/services/<?php echo (int)$service['id']; ?>/edit" method="POST" novalidate>
                     <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
 
                     <div class="form-group">
@@ -74,7 +74,7 @@ include BASE_PATH . '/app/Views/layouts/header.php';
 
                     <div style="display: flex; gap: var(--space-16); margin-top: var(--space-24);">
                         <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
-                        <a href="/service/details?id=<?php echo (int)$service['id']; ?>" class="btn btn-secondary">Cancel</a>
+                        <a href="/services/<?php echo (int)$service['id']; ?>" class="btn btn-secondary">Cancel</a>
                     </div>
 
                 </form>

@@ -1,7 +1,9 @@
 <?php
 // includes/header.php
-// This file contains the opening HTML tags, `<head>` metadata, and the main site navigation.
-// Including it on every page prevents us from having to rewrite this code.
+// Site header navigation and global HTML shell.
+
+require_once __DIR__ . '/auth.php';
+$user = currentUser();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,10 +17,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
   
-  <!-- Link our custom design system CSS -->
+  <!-- Link custom design system CSS -->
   <link rel="stylesheet" href="assets/css/style-guide.css">
   <style>
-    /* Add a little custom styling for the nav bar specifically for the app */
     .app-navbar {
       display: flex;
       justify-content: space-between;
@@ -42,6 +43,7 @@
     .nav-links {
       display: flex;
       gap: var(--space-24);
+      align-items: center;
     }
     .nav-links a {
       color: var(--color-text-neutral);
@@ -53,7 +55,6 @@
       color: var(--color-primary);
     }
     
-    /* Layout utilities for main content areas */
     .page-main {
       min-height: calc(100vh - 200px);
     }
@@ -64,12 +65,28 @@
   <!-- Global Header Navigation -->
   <header class="app-navbar">
     <a href="index.php" class="app-logo">Tandem</a>
-    <nav class="nav-links" style="align-items: center;">
+    <nav class="nav-links">
       <a href="index.php">Home</a>
       <a href="services.php">Services</a>
       <a href="contact.php">Contact</a>
       <span style="color: var(--color-border);">|</span>
-      <a href="login.php">Log In</a>
-      <a href="register.php" class="btn btn-primary" style="padding: var(--space-8) var(--space-16); color: white;">Sign Up</a>
+      
+      <?php if ($user): ?>
+        <?php
+          $dashUrl = 'client-dashboard.php';
+          if ($user['role'] === 'freelancer') $dashUrl = 'freelancer-dashboard.php';
+          if ($user['role'] === 'admin') $dashUrl = 'admin-dashboard.php';
+        ?>
+        <a href="<?php echo $dashUrl; ?>" style="font-weight: 600; color: var(--color-primary);">
+          Dashboard (<?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?>)
+        </a>
+        <a href="logout.php" class="btn btn-secondary" style="padding: var(--space-8) var(--space-16);">Log Out</a>
+      <?php else: ?>
+        <a href="login.php">Log In</a>
+        <a href="register.php" class="btn btn-primary" style="padding: var(--space-8) var(--space-16); color: white;">Sign Up</a>
+      <?php endif; ?>
     </nav>
   </header>
+
+  <!-- Global Flash Messages Banner -->
+  <?php renderFlashMessages(); ?>

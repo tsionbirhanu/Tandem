@@ -3,75 +3,43 @@
 
 namespace App\Models;
 
-use PDO;
+/**
+ * Abstract Base User Class
+ * 
+ * Demonstrates Object-Oriented Polymorphism and Single Responsibility.
+ * Role-specific logic is encapsulated in concrete subclasses (Client, Freelancer, Admin)
+ * rather than scattering `if ($role === 'freelancer')` conditionals across the codebase.
+ */
+abstract class User {
+    public function __construct(
+        protected int $id,
+        protected string $name,
+        protected string $email,
+        protected string $role,
+        protected ?string $avatarUrl = null,
+        protected ?string $createdAt = null
+    ) {}
 
-class User {
-    public function __construct(private PDO $db) {}
+    // Getters
+    public function getId(): int { return $this->id; }
+    public function getName(): string { return $this->name; }
+    public function getEmail(): string { return $this->email; }
+    public function getRole(): string { return $this->role; }
+    public function getAvatarUrl(): ?string { return $this->avatarUrl; }
+    public function getCreatedAt(): ?string { return $this->createdAt; }
 
-    /**
-     * Finds a user by ID.
-     */
-    public function find(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT id, name, email, role, avatar_url, created_at FROM users WHERE id = :id");
-        $stmt->execute([':id' => $id]);
-        $user = $stmt->fetch();
-        return $user ?: null;
-    }
-
-    /**
-     * Finds a user by email (including password_hash for authentication).
-     */
-    public function findByEmail(string $email): ?array {
-        $stmt = $this->db->prepare("SELECT id, name, email, password_hash, role, avatar_url, created_at FROM users WHERE email = :email LIMIT 1");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch();
-        return $user ?: null;
-    }
-
-    /**
-     * Checks if an email address is already registered.
-     */
-    public function emailExists(string $email): bool {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
-        $stmt->execute([':email' => $email]);
-        return (int)$stmt->fetchColumn() > 0;
-    }
+    // Role checks
+    public function isClient(): bool { return $this->role === 'client'; }
+    public function isFreelancer(): bool { return $this->role === 'freelancer'; }
+    public function isAdmin(): bool { return $this->role === 'admin'; }
 
     /**
-     * Creates a new user record and returns the new user ID.
+     * Abstract method enforced on all user types to determine their role dashboard URL.
      */
-    public function create(array $data): int {
-        $stmt = $this->db->prepare("INSERT INTO users (name, email, password_hash, role, created_at) VALUES (:name, :email, :password_hash, :role, NOW())");
-        $stmt->execute([
-            ':name'          => $data['name'],
-            ':email'         => $data['email'],
-            ':password_hash' => $data['password_hash'],
-            ':role'          => $data['role'] ?? 'client',
-        ]);
-        return (int)$this->db->lastInsertId();
-    }
+    abstract public function getDashboardUrl(): string;
 
     /**
-     * Retrieves all users (for admin panel).
+     * Abstract method enforcing human-readable display title for user roles.
      */
-    public function all(): array {
-        $stmt = $this->db->query("SELECT id, name, email, role, created_at FROM users ORDER BY id ASC");
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Retrieves users filtered by role.
-     */
-    public function findByRole(string $role): array {
-        $stmt = $this->db->prepare("SELECT id, name, email FROM users WHERE role = :role ORDER BY name ASC");
-        $stmt->execute([':role' => $role]);
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Returns total count of registered users.
-     */
-    public function count(): int {
-        return (int)$this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-    }
+    abstract public function getRoleDisplayName(): string;
 }

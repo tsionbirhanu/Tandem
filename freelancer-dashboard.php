@@ -1,16 +1,15 @@
 <?php
 // freelancer-dashboard.php
-// Freelancer SaaS Dashboard refactored to use Service, ProjectRequest, and Review models.
+// Freelancer SaaS Dashboard leveraging Freelancer subclass methods.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-use App\Models\Service;
-use App\Models\ProjectRequest;
-use App\Models\Review;
+use App\Models\Freelancer;
 
 requireRole('freelancer');
 
+/** @var Freelancer $user */
 $user = currentUser();
 $dbError = null;
 
@@ -26,17 +25,14 @@ $incomingRequests = [];
 try {
     $pdo = Database::getConnection();
 
-    $serviceModel = new Service($pdo);
-    $requestModel = new ProjectRequest($pdo);
-    $reviewModel  = new Review($pdo);
+    // Call role-specific methods on Freelancer subclass instance
+    $stats['active_services']      = $user->getActiveServicesCount($pdo);
+    $stats['pending_requests']     = $user->getPendingRequestsCount($pdo);
+    $stats['in_progress_projects'] = $user->getInProgressProjectsCount($pdo);
+    $stats['avg_rating']           = $user->getAverageRating($pdo);
 
-    $stats['active_services']      = $serviceModel->countByFreelancer($user['id']);
-    $stats['pending_requests']     = $requestModel->countPendingByFreelancer($user['id']);
-    $stats['in_progress_projects'] = $requestModel->countInProgressByFreelancer($user['id']);
-    $stats['avg_rating']           = $reviewModel->averageRatingByFreelancer($user['id']);
-
-    $myServices       = $serviceModel->findByFreelancer($user['id']);
-    $incomingRequests = $requestModel->findByFreelancer($user['id']);
+    $myServices       = $user->getServices($pdo);
+    $incomingRequests = $user->getIncomingRequests($pdo);
 
 } catch (Exception $e) {
     $dbError = "Database Error: Unable to load freelancer metrics. " . $e->getMessage();
@@ -47,7 +43,7 @@ include 'includes/header.php';
 
 <!-- Mobile Navigation Bar -->
 <div class="mobile-toggle-bar">
-    <span style="font-weight: 600; font-family: var(--font-heading); color: var(--color-primary);">Freelancer Hub</span>
+    <span style="font-weight: 600; font-family: var(--font-heading); color: var(--color-primary);"><?php echo htmlspecialchars($user->getRoleDisplayName(), ENT_QUOTES, 'UTF-8'); ?></span>
     <button type="button" id="sidebarToggleBtn" class="btn btn-secondary" style="padding: var(--space-8) var(--space-12);">
         ☰ Menu
     </button>
@@ -61,14 +57,14 @@ include 'includes/header.php';
     <aside class="dashboard-sidebar" id="dashboardSidebar">
         <div>
             <div class="dashboard-sidebar-header">
-                <span class="badge badge-success" style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;">Freelancer Workspace</span>
-                <h3 style="margin-top: var(--space-8); margin-bottom: 0; font-size: var(--text-h5);"><?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p class="text-caption" style="margin: 0; color: var(--color-text-muted);"><?php echo htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8'); ?></p>
+                <span class="badge badge-success" style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;"><?php echo htmlspecialchars($user->getRoleDisplayName(), ENT_QUOTES, 'UTF-8'); ?></span>
+                <h3 style="margin-top: var(--space-8); margin-bottom: 0; font-size: var(--text-h5);"><?php echo htmlspecialchars($user->getName(), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="text-caption" style="margin: 0; color: var(--color-text-muted);"><?php echo htmlspecialchars($user->getEmail(), ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
             <ul class="sidebar-menu">
                 <li>
-                    <a href="freelancer-dashboard.php" class="sidebar-link active">
+                    <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="sidebar-link active">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                         Dashboard Overview
                     </a>

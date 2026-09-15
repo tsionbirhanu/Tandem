@@ -1,6 +1,9 @@
 <?php
 // includes/auth.php
-// Authentication & Session Management Helper Functions
+// Authentication & Session Management Helper Functions using UserFactory and User polymorphic models.
+
+use App\Models\User;
+use App\Models\UserFactory;
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -42,18 +45,20 @@ function isLoggedIn(): bool {
 }
 
 /**
- * Returns current logged-in user array or null.
+ * Returns current logged-in User instance (Client, Freelancer, or Admin) or null.
  */
-function currentUser(): ?array {
+function currentUser(): ?User {
     if (!isLoggedIn()) {
         return null;
     }
-    return [
-        'id'    => $_SESSION['user_id'],
-        'name'  => $_SESSION['user_name'] ?? '',
-        'email' => $_SESSION['user_email'] ?? '',
-        'role'  => $_SESSION['user_role'] ?? '',
-    ];
+    return UserFactory::createUserFromRow([
+        'id'         => $_SESSION['user_id'],
+        'name'       => $_SESSION['user_name'] ?? '',
+        'email'      => $_SESSION['user_email'] ?? '',
+        'role'       => $_SESSION['user_role'] ?? 'client',
+        'avatar_url' => $_SESSION['user_avatar'] ?? null,
+        'created_at' => $_SESSION['user_created_at'] ?? null,
+    ]);
 }
 
 /**
@@ -101,20 +106,14 @@ function renderFlashMessages(): void {
 }
 
 /**
- * Redirects user to their role-specific dashboard.
+ * Redirects user to their role-specific dashboard URL using polymorphism.
  */
 function redirectUserToDashboard(string $role): void {
-    switch ($role) {
-        case 'admin':
-            header('Location: admin-dashboard.php');
-            break;
-        case 'freelancer':
-            header('Location: freelancer-dashboard.php');
-            break;
-        case 'client':
-        default:
-            header('Location: client-dashboard.php');
-            break;
-    }
+    $target = match ($role) {
+        'admin'      => 'admin-dashboard.php',
+        'freelancer' => 'freelancer-dashboard.php',
+        default      => 'client-dashboard.php',
+    };
+    header("Location: {$target}");
     exit;
 }

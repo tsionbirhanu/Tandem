@@ -1,17 +1,15 @@
 <?php
 // admin-dashboard.php
-// Admin Panel refactored to use User, Service, ProjectRequest, and Review models.
+// Admin Panel leveraging Admin subclass methods.
 
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-use App\Models\User;
-use App\Models\Service;
-use App\Models\ProjectRequest;
-use App\Models\Review;
+use App\Models\Admin;
 
 requireRole('admin');
 
+/** @var Admin $user */
 $user = currentUser();
 $dbError = null;
 
@@ -26,17 +24,9 @@ $allUsers = [];
 try {
     $pdo = Database::getConnection();
 
-    $userModel    = new User($pdo);
-    $serviceModel = new Service($pdo);
-    $requestModel = new ProjectRequest($pdo);
-    $reviewModel  = new Review($pdo);
-
-    $stats['users']    = $userModel->count();
-    $stats['services'] = $serviceModel->count();
-    $stats['requests'] = $requestModel->count();
-    $stats['reviews']  = $reviewModel->count();
-
-    $allUsers = $userModel->all();
+    // Call role-specific methods on Admin subclass instance
+    $stats    = $user->getPlatformStats($pdo);
+    $allUsers = $user->getAllUsers($pdo);
 
 } catch (Exception $e) {
     $dbError = "Database Error: Unable to fetch system administration data. " . $e->getMessage();
@@ -47,7 +37,7 @@ include 'includes/header.php';
 
 <!-- Mobile Navigation Bar -->
 <div class="mobile-toggle-bar">
-    <span style="font-weight: 600; font-family: var(--font-heading); color: var(--color-primary);">Admin Console</span>
+    <span style="font-weight: 600; font-family: var(--font-heading); color: var(--color-primary);"><?php echo htmlspecialchars($user->getRoleDisplayName(), ENT_QUOTES, 'UTF-8'); ?></span>
     <button type="button" id="sidebarToggleBtn" class="btn btn-secondary" style="padding: var(--space-8) var(--space-12);">
         ☰ Menu
     </button>
@@ -61,14 +51,14 @@ include 'includes/header.php';
     <aside class="dashboard-sidebar" id="dashboardSidebar">
         <div>
             <div class="dashboard-sidebar-header">
-                <span class="badge badge-primary" style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; background-color: var(--color-primary-dark);">System Admin</span>
-                <h3 style="margin-top: var(--space-8); margin-bottom: 0; font-size: var(--text-h5);"><?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p class="text-caption" style="margin: 0; color: var(--color-text-muted);"><?php echo htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8'); ?></p>
+                <span class="badge badge-primary" style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; background-color: var(--color-primary-dark);"><?php echo htmlspecialchars($user->getRoleDisplayName(), ENT_QUOTES, 'UTF-8'); ?></span>
+                <h3 style="margin-top: var(--space-8); margin-bottom: 0; font-size: var(--text-h5);"><?php echo htmlspecialchars($user->getName(), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="text-caption" style="margin: 0; color: var(--color-text-muted);"><?php echo htmlspecialchars($user->getEmail(), ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
             <ul class="sidebar-menu">
                 <li>
-                    <a href="admin-dashboard.php" class="sidebar-link active">
+                    <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="sidebar-link active">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                         System Overview
                     </a>

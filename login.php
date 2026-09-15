@@ -5,7 +5,7 @@
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-use App\Models\User;
+use App\Models\UserFactory;
 
 if (isLoggedIn()) {
     redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
@@ -30,23 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['password'] = "Password is required.";
     }
 
-    // Authenticate via User model
+    // Authenticate via UserFactory
     if (empty($errors)) {
         try {
             $pdo = Database::getConnection();
-            $userModel = new User($pdo);
-            $user = $userModel->findByEmail($email);
+            $userRow = UserFactory::findRowByEmail($pdo, $email);
 
-            if ($user && password_verify($password, $user['password_hash'])) {
+            if ($userRow && password_verify($password, $userRow['password_hash'])) {
                 session_regenerate_id(true);
 
-                $_SESSION['user_id']    = (int)$user['id'];
-                $_SESSION['user_name']  = $user['name'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_role']  = $user['role'];
+                $user = UserFactory::createUserFromRow($userRow);
 
-                setFlash('success', "Welcome back, {$user['name']}!");
-                redirectUserToDashboard($user['role']);
+                $_SESSION['user_id']    = $user->getId();
+                $_SESSION['user_name']  = $user->getName();
+                $_SESSION['user_email'] = $user->getEmail();
+                $_SESSION['user_role']  = $user->getRole();
+
+                setFlash('success', "Welcome back, {$user->getName()}!");
+                redirectUserToDashboard($user->getRole());
             } else {
                 $errors['login'] = "Invalid email address or password.";
             }

@@ -5,7 +5,7 @@
 require_once 'includes/Database.php';
 require_once 'includes/auth.php';
 
-use App\Models\User;
+use App\Models\UserFactory;
 
 if (isLoggedIn()) {
     redirectUserToDashboard($_SESSION['user_role'] ?? 'client');
@@ -38,9 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $pdo = Database::getConnection();
-            $userModel = new User($pdo);
 
-            if ($userModel->emailExists($email)) {
+            if (UserFactory::emailExists($pdo, $email)) {
                 $errors['email'] = "This email address is already registered.";
             }
         } catch (Exception $e) {
@@ -65,14 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['confirm_password'] = "Passwords do not match.";
     }
     
-    // Register User via User model
+    // Register User via UserFactory
     if (empty($errors)) {
         try {
             $pdo = Database::getConnection();
-            $userModel = new User($pdo);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            $newUserId = $userModel->create([
+            $newUserId = UserFactory::createUser($pdo, [
                 'name'          => $name,
                 'email'         => $email,
                 'password_hash' => $hashed_password,

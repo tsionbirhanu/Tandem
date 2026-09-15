@@ -1,6 +1,6 @@
 <?php
 // includes/header.php
-// Site header navigation and global HTML shell.
+// Site header navigation and global HTML shell using polymorphic User model methods.
 
 require_once __DIR__ . '/auth.php';
 $user = currentUser();
@@ -72,13 +72,8 @@ $user = currentUser();
       <span style="color: var(--color-border);">|</span>
       
       <?php if ($user): ?>
-        <?php
-          $dashUrl = 'client-dashboard.php';
-          if ($user['role'] === 'freelancer') $dashUrl = 'freelancer-dashboard.php';
-          if ($user['role'] === 'admin') $dashUrl = 'admin-dashboard.php';
-        ?>
-        <a href="<?php echo $dashUrl; ?>" style="font-weight: 600; color: var(--color-primary);">
-          Dashboard (<?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?>)
+        <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" style="font-weight: 600; color: var(--color-primary);">
+          Dashboard (<?php echo htmlspecialchars($user->getName(), ENT_QUOTES, 'UTF-8'); ?>)
         </a>
         <a href="logout.php" class="btn btn-secondary" style="padding: var(--space-8) var(--space-16);">Log Out</a>
       <?php else: ?>

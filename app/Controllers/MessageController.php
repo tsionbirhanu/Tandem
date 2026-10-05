@@ -49,16 +49,22 @@ class MessageController {
         }
 
         if (empty($errors)) {
-            try {
-                $pdo = Database::getConnection();
-                $messageModel = new Message($pdo);
-                $messageModel->create([
-                    'sender_id'   => $_SESSION['user_id'] ?? null,
-                    'receiver_id' => 1,
-                    'content'     => "Contact form inquiry from {$name} ({$email}): {$message}",
-                ]);
-            } catch (Exception $e) {
-                // Ignore or log error silently for contact form persistence
+            // Messages need a sender account, so only logged-in users' inquiries are stored
+            // (delivered to the platform admin's inbox).
+            if (isLoggedIn()) {
+                try {
+                    $pdo = Database::getConnection();
+                    $adminId = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1")->fetchColumn();
+                    if ($adminId > 0) {
+                        (new Message($pdo))->create([
+                            'sender_id'   => (int)$_SESSION['user_id'],
+                            'receiver_id' => $adminId,
+                            'body'        => "Contact form inquiry from {$name} ({$email}): {$message}",
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    error_log('Contact form message could not be stored: ' . $e->getMessage());
+                }
             }
 
             $isSuccess = true;

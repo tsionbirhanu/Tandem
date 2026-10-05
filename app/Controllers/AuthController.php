@@ -5,9 +5,22 @@ namespace App\Controllers;
 
 use Database;
 use App\Models\UserFactory;
+use App\Models\Review;
 use Exception;
 
 class AuthController {
+
+    /**
+     * A recent client review to show beside the login/register form (null if unavailable).
+     */
+    private function randomQuote(): ?array {
+        try {
+            $reviews = (new Review(Database::getConnection()))->latest(5);
+            return $reviews ? $reviews[array_rand($reviews)] : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
 
     public function showLogin(): void {
         if (isLoggedIn()) {
@@ -15,8 +28,13 @@ class AuthController {
             redirectUserToDashboard($userRole);
         }
 
+        // Email carried over from a just-completed registration (shown once)
+        $email = $_SESSION['login_prefill_email'] ?? '';
+        unset($_SESSION['login_prefill_email']);
+
         render('auth/login', [
-            'email'  => '',
+            'artQuote' => $this->randomQuote(),
+            'email'  => $email,
             'errors' => [],
         ]);
     }
@@ -55,6 +73,8 @@ class AuthController {
                     $_SESSION['user_name']  = $user->getName();
                     $_SESSION['user_email'] = $user->getEmail();
                     $_SESSION['user_role']  = $user->getRole();
+                    $_SESSION['user_avatar']     = $user->getAvatarUrl();
+                    $_SESSION['user_created_at'] = $user->getCreatedAt();
 
                     setFlash('success', "Welcome back, {$user->getName()}!");
                     redirectUserToDashboard($user->getRole());
@@ -67,6 +87,7 @@ class AuthController {
         }
 
         render('auth/login', [
+            'artQuote' => $this->randomQuote(),
             'email'  => $email,
             'errors' => $errors,
         ]);
@@ -79,6 +100,7 @@ class AuthController {
         }
 
         render('auth/register', [
+            'artQuote' => $this->randomQuote(),
             'name'   => '',
             'email'  => '',
             'role'   => 'client',
@@ -139,27 +161,26 @@ class AuthController {
                 $pdo = Database::getConnection();
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-                $newUserId = UserFactory::createUser($pdo, [
+                UserFactory::createUser($pdo, [
                     'name'          => $name,
                     'email'         => $email,
                     'password_hash' => $hashed_password,
                     'role'          => $role,
                 ]);
 
-                session_regenerate_id(true);
-                $_SESSION['user_id']    = $newUserId;
-                $_SESSION['user_name']  = $name;
-                $_SESSION['user_email'] = $email;
-                $_SESSION['user_role']  = $role;
-
-                setFlash('success', "Account created successfully! Welcome to Tandem, {$name}.");
-                redirectUserToDashboard($role);
+                // Not logged in automatically: send the new user to the login page
+                // with their email prefilled; logging in takes them to their dashboard.
+                $_SESSION['login_prefill_email'] = $email;
+                setFlash('success', "Account created! Log in to get started, {$name}.");
+                header('Location: /login');
+                exit;
             } catch (Exception $e) {
                 $errors['global'] = "Registration failed: " . $e->getMessage();
             }
         }
 
         render('auth/register', [
+            'artQuote' => $this->randomQuote(),
             'name'   => $name,
             'email'  => $email,
             'role'   => $role,

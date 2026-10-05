@@ -1,120 +1,69 @@
 <?php
 // app/Views/profile/edit.php
+$pageTitle = 'Edit profile';
 include BASE_PATH . '/app/Views/layouts/header.php';
+$currentAvatar = assetUrl($user->getAvatarUrl()) ?? '';
 ?>
 
-<main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
-    <div style="max-width: 520px; margin: 0 auto;">
-        
-        <div style="margin-bottom: var(--space-24);">
-            <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
-                &larr; Back to Dashboard
-            </a>
+<main class="wrap wrap-narrow" style="padding-bottom: 80px;">
+  <header class="page-head">
+    <a href="<?= e($user->getDashboardUrl()) ?>" class="arrow-link back small muted" style="text-decoration: none;">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
+      Dashboard
+    </a>
+    <h1 class="mt-16">Your <em>profile</em></h1>
+    <p class="muted mb-0">This is how you appear to <?= $user->isFreelancer() ? 'clients browsing your services' : 'freelancers you contact' ?>.</p>
+  </header>
+
+  <?php if (!empty($dbError)): ?>
+    <div class="alert"><?= e($dbError) ?></div>
+  <?php endif; ?>
+
+  <form action="/profile/edit" method="POST" enctype="multipart/form-data" novalidate class="panel panel-print"
+        x-data="{ name: <?= e(json_encode($name ?? '')) ?> }">
+
+    <div class="field <?= isset($errors['avatar']) ? 'has-error' : '' ?>" x-data="imagePicker(<?= e(json_encode($currentAvatar)) ?>)">
+      <span class="label">Photo</span>
+      <div class="avatar-edit"
+           @dragover.prevent="over = true" @dragleave.prevent="over = false" @drop.prevent="over = false; pick($event.dataTransfer.files)">
+        <template x-if="preview">
+          <img class="avatar avatar-xl" :src="preview" alt="Your photo" :style="over ? 'outline: 3px dashed var(--accent); outline-offset: 4px' : ''">
+        </template>
+        <template x-if="!preview">
+          <span class="avatar avatar-xl avatar-tint-<?= abs(crc32($user->getName())) % 4 ?>" x-text="(name.trim().split(/\s+/).slice(0,2).map(p => p[0] || '').join('') || '?').toUpperCase()"
+                :style="over ? 'outline: 3px dashed var(--accent); outline-offset: 4px' : ''"></span>
+        </template>
+        <div>
+          <label class="btn btn-sm" for="avatar" style="cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 11v3h12v-3"/></svg>
+            <span x-text="preview ? 'Change photo' : 'Upload photo'"></span>
+          </label>
+          <p class="field-help">JPG, PNG or WebP, up to 5 MB. You can also drop an image onto the circle.</p>
+          <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/webp" class="sr-only" x-ref="input" @change="pick($event.target.files)">
         </div>
-
-        <div style="margin-bottom: var(--space-32); text-align: center;">
-            <h1>Edit Account Profile</h1>
-            <p class="text-small" style="color: var(--color-text-muted);">Update your display name, email, and avatar photo.</p>
-        </div>
-
-        <?php if ($dbError): ?>
-            <div class="alert alert-error" style="margin-bottom: var(--space-24);">
-                <strong>Database Error:</strong> <?php echo htmlspecialchars($dbError, ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-        <?php endif; ?>
-
-        <div class="sg-card">
-            <form action="/profile/edit" method="POST" enctype="multipart/form-data" novalidate>
-                
-                <!-- Profile Avatar Preview & Upload -->
-                <div class="form-group" style="text-align: center; margin-bottom: var(--space-32);">
-                    <div style="position: relative; width: 100px; height: 100px; margin: 0 auto var(--space-16) auto;">
-                        <?php if ($user->getAvatarUrl()): ?>
-                            <img id="avatar-preview-img" src="<?php echo htmlspecialchars($user->getAvatarUrl(), ENT_QUOTES, 'UTF-8'); ?>" 
-                                 alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--color-primary);">
-                        <?php else: ?>
-                            <div id="avatar-preview-fallback" style="width: 100px; height: 100px; border-radius: 50%; background-color: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700; border: 3px solid var(--color-primary);">
-                                <?php echo strtoupper(substr($user->getName(), 0, 1)); ?>
-                            </div>
-                            <img id="avatar-preview-img" src="" alt="Avatar" style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--color-primary);">
-                        <?php endif; ?>
-                    </div>
-
-                    <label class="btn btn-secondary" for="avatar" style="cursor: pointer; display: inline-block; font-size: 0.85rem; padding: var(--space-6) var(--space-16);">
-                        📷 Change Profile Photo
-                    </label>
-                    <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/webp" style="display: none;">
-                    
-                    <p class="text-caption" style="margin-top: var(--space-8); color: var(--color-text-muted);">
-                        JPG, PNG, or WebP. Max file size: 5MB.
-                    </p>
-                    
-                    <?php if (isset($errors['avatar'])): ?>
-                        <div class="form-error-msg" style="margin-top: var(--space-8); text-align: center;"><?php echo htmlspecialchars($errors['avatar'], ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="name">Full Name</label>
-                    <input type="text" id="name" name="name" 
-                           class="form-input <?php echo isset($errors['name']) ? 'form-input-error' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php if (isset($errors['name'])): ?>
-                        <div class="form-error-msg"><?php echo htmlspecialchars($errors['name'], ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
-                    <input type="email" id="email" name="email" 
-                           class="form-input <?php echo isset($errors['email']) ? 'form-input-error' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php if (isset($errors['email'])): ?>
-                        <div class="form-error-msg"><?php echo htmlspecialchars($errors['email'], ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
-                </div>
-
-                <div style="display: flex; gap: var(--space-16); margin-top: var(--space-24);">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
-                    <a href="<?php echo htmlspecialchars($user->getDashboardUrl(), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-secondary">Cancel</a>
-                </div>
-
-            </form>
-        </div>
-
+      </div>
+      <?= fieldError($errors ?? [], 'avatar') ?>
     </div>
+
+    <hr class="rule-dash">
+
+    <div class="field <?= isset($errors['name']) ? 'has-error' : '' ?>">
+      <label class="label" for="name">Name</label>
+      <input class="input" type="text" id="name" name="name" x-model="name" autocomplete="name">
+      <?= fieldError($errors ?? [], 'name') ?>
+    </div>
+
+    <div class="field <?= isset($errors['email']) ? 'has-error' : '' ?>">
+      <label class="label" for="email">Email</label>
+      <input class="input" type="email" id="email" name="email" value="<?= e($email ?? '') ?>" autocomplete="email">
+      <?= fieldError($errors ?? [], 'email') ?>
+    </div>
+
+    <div class="row mt-24" style="justify-content: flex-end;">
+      <a href="<?= e($user->getDashboardUrl()) ?>" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-ink"><span class="spinner"></span>Save changes</button>
+    </div>
+  </form>
 </main>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const avatarInput = document.getElementById('avatar');
-    const avatarImg = document.getElementById('avatar-preview-img');
-    const avatarFallback = document.getElementById('avatar-preview-fallback');
-
-    if (avatarInput) {
-        avatarInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                if (file.size > 5242880) {
-                    alert('File is too large! Maximum allowed size is 5MB.');
-                    this.value = '';
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    if (avatarImg) {
-                        avatarImg.src = e.target.result;
-                        avatarImg.style.display = 'block';
-                    }
-                    if (avatarFallback) {
-                        avatarFallback.style.display = 'none';
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-});
-</script>
 
 <?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

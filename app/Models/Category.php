@@ -19,6 +19,20 @@ class Category {
     /**
      * Finds a category by ID.
      */
+    /**
+     * Retrieves all categories with the number of services listed in each.
+     */
+    public function allWithCounts(): array {
+        $stmt = $this->db->query("
+            SELECT c.id, c.name, c.slug, COUNT(s.id) AS service_count
+            FROM categories c
+            LEFT JOIN services s ON s.category_id = c.id
+            GROUP BY c.id
+            ORDER BY c.name ASC
+        ");
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array {
         $stmt = $this->db->prepare("SELECT id, name, slug FROM categories WHERE id = :id");
         $stmt->execute([':id' => $id]);

@@ -20,7 +20,8 @@ class Client extends User {
      */
     public function getProjectRequests(PDO $db): array {
         $stmt = $db->prepare("SELECT pr.*, s.title AS service_title, s.price, c.name AS category_name, u.name AS freelancer_name,
-                                     IF(r.id IS NOT NULL, 1, 0) AS has_reviewed
+                                     s.freelancer_id, u.avatar_url AS freelancer_avatar,
+                                     (r.id IS NOT NULL) AS has_reviewed
                               FROM project_requests pr 
                               JOIN services s ON pr.service_id = s.id 
                               JOIN categories c ON s.category_id = c.id

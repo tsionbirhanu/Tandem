@@ -82,6 +82,21 @@ function getFlash(string $type): ?string {
 }
 
 /**
+ * Consumes all pending flash messages and returns them as [['type' => ..., 'text' => ...], ...].
+ * 'notice' messages are reported with the 'info' type.
+ */
+function flashMessages(): array {
+    $messages = [];
+    foreach (['success' => 'success', 'error' => 'error', 'notice' => 'info'] as $key => $type) {
+        $text = getFlash($key);
+        if ($text !== null) {
+            $messages[] = ['type' => $type, 'text' => $text];
+        }
+    }
+    return $messages;
+}
+
+/**
  * Renders flash message banners if any are set in session.
  */
 function renderFlashMessages(): void {

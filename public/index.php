@@ -19,6 +19,7 @@ require_once BASE_PATH . '/includes/Database.php';
 require_once BASE_PATH . '/includes/auth.php';
 require_once BASE_PATH . '/app/Helpers/view.php';
 require_once BASE_PATH . '/app/Helpers/upload.php';
+require_once BASE_PATH . '/app/Helpers/ui.php';
 
 // Require Models
 require_once BASE_PATH . '/app/Models/User.php';
@@ -41,6 +42,7 @@ require_once BASE_PATH . '/app/Controllers/DashboardController.php';
 require_once BASE_PATH . '/app/Controllers/MessageController.php';
 require_once BASE_PATH . '/app/Controllers/ProfileController.php';
 require_once BASE_PATH . '/app/Controllers/ReviewController.php';
+require_once BASE_PATH . '/app/Controllers/RequestController.php';
 
 // Load Routes & Dispatch HTTP Request
 /** @var \Routes\Router $router */

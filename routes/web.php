@@ -11,6 +11,7 @@ use App\Controllers\DashboardController;
 use App\Controllers\MessageController;
 use App\Controllers\ProfileController;
 use App\Controllers\ReviewController;
+use App\Controllers\RequestController;
 
 if (!class_exists('Routes\Router')) {
     class Router {
@@ -112,6 +113,10 @@ $router->get('/dashboard/admin', [DashboardController::class, 'admin']);
 $router->get('/profile/edit', [ProfileController::class, 'showEdit']);
 $router->post('/profile/edit', [ProfileController::class, 'edit']);
 $router->get('/freelancer/{id}', [ProfileController::class, 'showFreelancer']);
+
+// Hiring Flow Routes (send a request, then accept / reject / start / complete / cancel)
+$router->post('/services/{id}/request', [RequestController::class, 'create']);
+$router->post('/requests/{id}/status', [RequestController::class, 'updateStatus']);
 
 // Review Routes
 $router->get('/requests/{id}/review', [ReviewController::class, 'showCreate']);

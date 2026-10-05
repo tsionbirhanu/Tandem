@@ -1,10 +1,21 @@
 <?php
 // app/Views/layouts/footer.php
-// Global Footer layout template for Tandem MVC application.
+// Global footer.
 ?>
-  <!-- Global Footer -->
-  <footer style="text-align: center; padding: var(--space-48) var(--space-24); margin-top: var(--space-64); border-top: 1px solid var(--color-border); color: var(--color-text-muted);">
-    <p>&copy; 2026 Tandem Network. All rights reserved.</p>
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <span class="logo-word">tandem</span>
+        <span class="muted small">Independent designers, developers &amp; writers.</span>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="/services">Browse work</a>
+        <a href="/register">Become a freelancer</a>
+        <a href="/#how">How it works</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <span class="small muted">&copy; <?= date('Y') ?> Tandem</span>
+    </div>
   </footer>
 </body>
 </html>

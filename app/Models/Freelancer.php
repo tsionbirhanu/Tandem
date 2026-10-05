@@ -55,7 +55,7 @@ class Freelancer extends User {
      * Role-specific method: Retrieves incoming client inquiries.
      */
     public function getIncomingRequests(PDO $db): array {
-        $stmt = $db->prepare("SELECT pr.*, s.title AS service_title, u.name AS client_name, u.email AS client_email 
+        $stmt = $db->prepare("SELECT pr.*, s.title AS service_title, s.price, u.name AS client_name, u.email AS client_email, u.avatar_url AS client_avatar 
                               FROM project_requests pr 
                               JOIN services s ON pr.service_id = s.id 
                               JOIN users u ON pr.client_id = u.id 

@@ -12,7 +12,7 @@ class ProjectRequest {
      * Finds a project request by ID.
      */
     public function find(int $id): ?array {
-        $sql = "SELECT pr.*, s.title AS service_title, s.price, c.name AS category_name, 
+        $sql = "SELECT pr.*, s.title AS service_title, s.price, s.freelancer_id, c.name AS category_name,
                        cl.name AS client_name, cl.email AS client_email,
                        fl.name AS freelancer_name, fl.email AS freelancer_email
                 FROM project_requests pr 
@@ -70,6 +70,45 @@ class ProjectRequest {
             ':status'     => $data['status'] ?? 'pending',
         ]);
         return (int)$this->db->lastInsertId();
+    }
+
+    /**
+     * Allowed status transitions: current status => [action => [new status, who may do it]].
+     */
+    public const TRANSITIONS = [
+        'pending'     => ['accept' => ['accepted', 'freelancer'], 'reject' => ['rejected', 'freelancer'], 'cancel' => ['cancelled', 'client']],
+        'accepted'    => ['start'  => ['in_progress', 'freelancer'], 'cancel' => ['cancelled', 'client']],
+        'in_progress' => ['complete' => ['completed', 'freelancer']],
+    ];
+
+    /**
+     * Resolves an action for a request: returns the new status, or null when the
+     * action is not allowed from the current status for the given party.
+     */
+    public static function nextStatus(string $current, string $action, string $party): ?string {
+        $rule = self::TRANSITIONS[$current][$action] ?? null;
+        return ($rule && $rule[1] === $party) ? $rule[0] : null;
+    }
+
+    /**
+     * Updates the status of a project request.
+     */
+    public function updateStatus(int $id, string $status): bool {
+        $stmt = $this->db->prepare("UPDATE project_requests SET status = :status WHERE id = :id");
+        return $stmt->execute([':status' => $status, ':id' => $id]);
+    }
+
+    /**
+     * Returns the client's still-open request (pending / accepted / in progress) for a service, if any.
+     */
+    public function findOpenForClientAndService(int $clientId, int $serviceId): ?array {
+        $stmt = $this->db->prepare("SELECT * FROM project_requests
+                                    WHERE client_id = :client_id AND service_id = :service_id
+                                      AND status IN ('pending', 'accepted', 'in_progress')
+                                    ORDER BY created_at DESC LIMIT 1");
+        $stmt->execute([':client_id' => $clientId, ':service_id' => $serviceId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
     }
 
     /**

@@ -37,10 +37,11 @@ Tandem/
 │       ├── messages/                 # contact.php
 │       └── services/                 # index.php, details.php, create.php, edit.php, delete.php
 ├── config/                # Environment & Database Configuration
-│   └── database.php                  # PDO Credentials & Connection Settings
+│   └── database.php                  # Reads DATABASE_URL (Neon) or DB_* variables
 ├── includes/              # Core Infrastructure & Session Helpers
 │   ├── auth.php                      # Session Guard & Flash Banners
-│   └── Database.php                  # PDO Singleton Connection Manager
+│   ├── Database.php                  # PDO Singleton Connection Manager (PostgreSQL)
+│   └── env.php                       # Loads .env into getenv()
 ├── public/                # Document Root & Web Assets (Publicly accessible)
 │   ├── assets/                       # CSS, Images, Fonts
 │   │   └── css/style-guide.css
@@ -48,8 +49,10 @@ Tandem/
 ├── routes/                # Route Definitions & Dispatching
 │   └── web.php                       # Lightweight HTTP Router & Route Table
 ├── .env.example           # Example Environment Variables Configuration
-├── schema.sql             # MySQL DDL Database Schema
-├── seed.sql               # MySQL Sample Data Seed Script
+├── scripts/
+│   └── db.php                        # DB CLI: status | migrate | seed | fresh
+├── schema.sql             # PostgreSQL DDL Database Schema
+├── seed.sql               # PostgreSQL Sample Data Seed Script
 └── README.md              # Project Architecture Documentation
 ```
 
@@ -80,12 +83,30 @@ Tandem/
 
 ---
 
-## Local Development Server Setup
+## Local Development Setup
 
-To run the application locally:
+Tandem uses **PostgreSQL**, hosted on [Neon](https://neon.tech) (serverless Postgres, free tier).
 
-```bash
-php -S localhost:8000 -t public public/index.php
-```
+1. **Create a database** — sign up at neon.tech, create a project, then open **Connect** and copy the connection string.
+2. **Configure the environment** — copy `.env.example` to `.env` and paste the string as `DATABASE_URL`.
+3. **Enable the PHP extension** — make sure `extension=pdo_pgsql` is uncommented in your `php.ini` (it is enabled by default in XAMPP 8.2).
+4. **Create tables and sample data**:
 
-Then visit `http://localhost:8000` in your web browser.
+   ```bash
+   php scripts/db.php fresh    # drop/recreate tables + load seed data
+   php scripts/db.php status   # check the connection and row counts
+   ```
+
+5. **Start the server**:
+
+   ```bash
+   php -S localhost:8000 -t public public/index.php
+   ```
+
+   Then visit `http://localhost:8000`. All seed accounts use the password `Password123!`:
+
+   | Role       | Email                     |
+   |------------|---------------------------|
+   | Client     | sarah.j@acmelabs.io       |
+   | Freelancer | david.chen@devstudio.io   |
+   | Admin      | admin@tandem.network      |

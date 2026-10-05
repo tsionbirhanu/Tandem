@@ -1,163 +1,225 @@
 <?php
 // app/Views/services/details.php
+$pageTitle = $service['title'] ?? 'Service';
 include BASE_PATH . '/app/Views/layouts/header.php';
 
 $isOwnerOrAdmin = false;
 if (isLoggedIn() && $service) {
-    $currentUserId = $_SESSION['user_id'] ?? 0;
-    $currentUserRole = $_SESSION['user_role'] ?? '';
-    if ($currentUserId === (int)$service['freelancer_id'] || $currentUserRole === 'admin') {
-        $isOwnerOrAdmin = true;
+    $isOwnerOrAdmin = (int)($_SESSION['user_id'] ?? 0) === (int)$service['freelancer_id']
+                   || ($_SESSION['user_role'] ?? '') === 'admin';
+}
+
+// Only keep gallery images whose files actually exist
+$images = [];
+foreach ($galleryImages ?? [] as $img) {
+    if ($url = assetUrl($img['image_path'])) {
+        $images[] = $url;
     }
 }
+$reviewCount = count($reviews ?? []);
+$avg = $reviewCount ? array_sum(array_column($reviews, 'rating')) / $reviewCount : 0;
+$firstName = $service ? explode(' ', $service['freelancer_name'])[0] : '';
 ?>
 
-<main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
-    
-    <div style="margin-bottom: var(--space-24);">
-        <a href="/services" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
-            &larr; Back to Services Directory
-        </a>
+<main class="wrap">
+  <div class="page-head" style="padding-bottom: 18px;">
+    <a href="/services" class="arrow-link back small muted" style="text-decoration: none;">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
+      All services
+    </a>
+  </div>
+
+  <?php if (!empty($dbError)): ?>
+    <div class="alert"><?= e($dbError) ?></div>
+  <?php endif; ?>
+
+  <?php if ($service): ?>
+    <div class="detail">
+      <article>
+        <div class="row row-wrap mb-16">
+          <a class="tag" href="/services?category=<?= e($service['category_slug']) ?>" style="text-decoration: none;"><?= e($service['category_name']) ?></a>
+          <span class="mono muted">№ <?= str_pad((string)(int)$service['id'], 3, '0', STR_PAD_LEFT) ?></span>
+          <?php if ($isOwnerOrAdmin): ?>
+            <span class="grow"></span>
+            <a href="/services/<?= (int)$service['id'] ?>/edit" class="btn btn-sm">Edit</a>
+            <a href="/services/<?= (int)$service['id'] ?>/delete" class="btn btn-sm btn-ghost" style="color: var(--danger);">Delete</a>
+          <?php endif; ?>
+        </div>
+
+        <h1><?= e($service['title']) ?></h1>
+
+        <div class="row row-wrap mb-24 small">
+          <?php if ($reviewCount): ?>
+            <span class="rating-inline"><?= stars($avg) ?> <b><?= number_format($avg, 1) ?></b> <a href="#reviews" class="muted"><?= $reviewCount ?> review<?= $reviewCount === 1 ? '' : 's' ?></a></span>
+            <span class="muted">·</span>
+          <?php endif; ?>
+          <span class="muted">Listed <?= e(date('F Y', strtotime($service['created_at']))) ?></span>
+        </div>
+
+        <!-- Gallery -->
+        <div x-data="gallery(<?= max(1, count($images)) ?>)"
+             @keydown.arrow-right.window="if (!$event.target.closest('input,textarea')) next()"
+             @keydown.arrow-left.window="if (!$event.target.closest('input,textarea')) prev()"
+             @keydown.escape.window="open = false">
+          <div class="gallery-main" @click="<?= $images ? 'open = true' : '' ?>">
+            <?php if ($images): ?>
+              <?php foreach ($images as $n => $src): ?>
+                <img src="<?= e($src) ?>" alt="<?= e($service['title']) ?> — image <?= $n + 1 ?>" x-show="i === <?= $n ?>" <?= $n ? 'x-cloak' : '' ?>
+                     x-transition:enter.opacity.duration.250ms>
+              <?php endforeach; ?>
+              <?php if (count($images) > 1): ?>
+                <button type="button" class="gallery-nav prev" @click.stop="prev()" aria-label="Previous image">←</button>
+                <button type="button" class="gallery-nav next" @click.stop="next()" aria-label="Next image">→</button>
+                <span class="gallery-count" x-text="(i + 1) + ' / ' + count"></span>
+              <?php endif; ?>
+            <?php else: ?>
+              <?= coverArt($service) ?>
+            <?php endif; ?>
+          </div>
+
+          <?php if (count($images) > 1): ?>
+            <div class="gallery-thumbs">
+              <?php foreach ($images as $n => $src): ?>
+                <button type="button" @click="go(<?= $n ?>)" :class="{ 'is-on': i === <?= $n ?> }" aria-label="Show image <?= $n + 1 ?>">
+                  <img src="<?= e($src) ?>" alt="" loading="lazy">
+                </button>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if ($images): ?>
+            <template x-teleport="body">
+              <div class="lightbox" x-show="open" x-cloak x-transition.opacity @click.self="open = false">
+                <?php foreach ($images as $n => $src): ?>
+                  <img src="<?= e($src) ?>" alt="" x-show="i === <?= $n ?>">
+                <?php endforeach; ?>
+                <button type="button" class="btn btn-sm close" @click="open = false">Close ✕</button>
+              </div>
+            </template>
+          <?php endif; ?>
+        </div>
+
+        <!-- Description -->
+        <section class="mt-32">
+          <span class="eyebrow">What you get</span>
+          <div class="prose mt-16<?= mb_strlen($service['description']) > 280 ? ' has-dropcap' : '' ?>">
+            <?php foreach (preg_split("/\n\s*\n/", trim($service['description'])) as $para): ?>
+              <p><?= nl2br(e($para)) ?></p>
+            <?php endforeach; ?>
+          </div>
+        </section>
+
+        <hr class="rule-dash">
+
+        <!-- Reviews -->
+        <section id="reviews" x-data="{ all: false }">
+          <div class="panel-title">
+            <h2 style="font-size: 1.8rem;">Reviews</h2>
+          </div>
+
+          <?php if ($reviewCount): ?>
+            <div class="rating-summary">
+              <span class="big"><?= number_format($avg, 1) ?></span>
+              <span><?= stars($avg, 'lg') ?><br><span class="small muted">from <?= $reviewCount ?> finished project<?= $reviewCount === 1 ? '' : 's' ?></span></span>
+            </div>
+            <?php foreach ($reviews as $n => $review): ?>
+              <div class="review" <?= $n >= 3 ? 'x-show="all" x-cloak x-transition' : '' ?>>
+                <div class="review-head">
+                  <?= avatar($review['client_avatar'] ?? null, $review['client_name'], 'sm') ?>
+                  <div class="meta">
+                    <b><?= e($review['client_name']) ?></b>
+                    <span class="small muted"><?= e(timeAgo($review['created_at'])) ?></span>
+                  </div>
+                  <?= stars((float)$review['rating']) ?>
+                </div>
+                <p><?= e($review['comment']) ?></p>
+              </div>
+            <?php endforeach; ?>
+            <?php if ($reviewCount > 3): ?>
+              <button type="button" class="btn btn-sm mt-16" @click="all = !all" x-text="all ? 'Show fewer' : 'Show all <?= $reviewCount ?> reviews'"></button>
+            <?php endif; ?>
+          <?php else: ?>
+            <div class="empty" style="padding: 32px;">
+              <p class="mb-0 muted">No reviews yet. Reviews appear here once a project with <?= e($firstName) ?> is finished.</p>
+            </div>
+          <?php endif; ?>
+        </section>
+      </article>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="buy-box stack">
+          <div class="panel panel-print">
+            <span class="eyebrow no-dash">Starting at</span>
+            <span class="price"><?= money($service['price']) ?></span>
+            <span class="small muted">Fixed price. Final scope is agreed with <?= e($firstName) ?> before work starts.</span>
+
+            <ul class="facts">
+              <li><span>Category</span><span><?= e($service['category_name']) ?></span></li>
+              <li><span>Rating</span><span><?= $reviewCount ? number_format($avg, 1) . ' / 5' : 'No reviews yet' ?></span></li>
+              <li><span>Updated</span><span><?= e(timeAgo($service['updated_at'] ?? $service['created_at'])) ?></span></li>
+            </ul>
+
+            <?php if ($isOwnerOrAdmin): ?>
+              <a href="/services/<?= (int)$service['id'] ?>/edit" class="btn btn-block">Edit this listing</a>
+            <?php elseif (!empty($openRequest)): ?>
+              <div class="alert alert-info mb-0" style="flex-direction: column; gap: 8px;">
+                <span>You've already sent a request for this.</span>
+                <span class="row between" style="width: 100%;">
+                  <?= statusPill($openRequest['status']) ?>
+                  <a href="/dashboard/client" class="small link">Track it →</a>
+                </span>
+              </div>
+            <?php elseif (($_SESSION['user_role'] ?? '') === 'client'): ?>
+              <div x-data="{ open: window.location.hash === '#request' }" id="request">
+                <button type="button" class="btn btn-accent btn-block btn-lg" x-show="!open" @click="open = true; $nextTick(() => $refs.brief.focus())">
+                  Request this service
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+                </button>
+                <form action="/services/<?= (int)$service['id'] ?>/request" method="POST" x-show="open" x-cloak x-transition
+                      x-data="charCount(20, 2000)">
+                  <label class="label" for="brief">Your brief for <?= e($firstName) ?> <span class="counter" :class="state" x-text="label"></span></label>
+                  <textarea class="textarea" id="brief" name="message" rows="5" x-ref="brief" x-model="text"
+                            placeholder="What do you need, by when, and anything <?= e($firstName) ?> should know?"></textarea>
+                  <div class="row mt-16">
+                    <button type="button" class="btn btn-ghost btn-sm" @click="open = false">Cancel</button>
+                    <button type="submit" class="btn btn-accent grow" :disabled="n < 20 || n > 2000"><span class="spinner"></span>Send request</button>
+                  </div>
+                </form>
+              </div>
+              <p class="small muted mt-16 mb-0" style="text-align: center;">Nothing is charged. <?= e($firstName) ?> accepts or declines first.</p>
+            <?php elseif (isLoggedIn()): ?>
+              <p class="small muted mb-0" style="text-align: center;">Log in with a <b>client</b> account to request this service.</p>
+            <?php else: ?>
+              <a href="/login" class="btn btn-accent btn-block btn-lg">Log in to request</a>
+              <p class="small muted mt-16 mb-0" style="text-align: center;">New here? <a class="link" href="/register">Make an account</a></p>
+            <?php endif; ?>
+          </div>
+
+          <a class="seller" href="/freelancer/<?= (int)$service['freelancer_id'] ?>">
+            <?= avatar($service['freelancer_avatar'] ?? null, $service['freelancer_name'], 'lg') ?>
+            <span class="grow">
+              <span class="small muted">Made by</span>
+              <b style="display: block; font-family: var(--font-display); font-size: 1.2rem; font-weight: 500;"><?= e($service['freelancer_name']) ?></b>
+              <span class="small link" style="text-decoration-thickness: 1.5px;">See profile</span>
+            </span>
+          </a>
+
+          <?php if (!empty($moreServices)): ?>
+            <div class="panel panel-soft">
+              <p class="filter-title">More from <?= e($firstName) ?></p>
+              <?php foreach ($moreServices as $other): ?>
+                <a href="/services/<?= (int)$other['id'] ?>" class="row between" style="text-decoration: none; padding: 10px 0; border-top: 1px dashed var(--rule); gap: 16px;">
+                  <span class="small" style="font-weight: 600; line-height: 1.35;"><?= e($other['title']) ?></span>
+                  <span class="mono"><?= money($other['price']) ?></span>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+      </aside>
     </div>
-
-    <?php if ($dbError): ?>
-        <div class="alert alert-error" style="margin-bottom: var(--space-24);">
-            <?php echo htmlspecialchars($dbError, ENT_QUOTES, 'UTF-8'); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($service): ?>
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-32);">
-            
-            <!-- Left Column: Service Overview, Gallery & Reviews -->
-            <div>
-                <div class="sg-card" style="margin-bottom: var(--space-32);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-12); margin-bottom: var(--space-16);">
-                        <span class="badge badge-primary"><?php echo htmlspecialchars($service['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                        
-                        <?php if ($isOwnerOrAdmin): ?>
-                            <div style="display: flex; gap: var(--space-8);">
-                                <a href="/services/<?php echo (int)$service['id']; ?>/edit" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem;">
-                                    Edit Service
-                                </a>
-                                <a href="/services/<?php echo (int)$service['id']; ?>/delete" class="btn btn-secondary" style="padding: var(--space-6) var(--space-12); font-size: 0.85rem; color: var(--color-error); border-color: var(--color-error);">
-                                    Delete
-                                </a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <h1 style="font-size: var(--text-h2); margin-bottom: var(--space-16);">
-                        <?php echo htmlspecialchars($service['title'], ENT_QUOTES, 'UTF-8'); ?>
-                    </h1>
-
-                    <!-- Freelancer Meta -->
-                    <a href="/freelancer/<?php echo (int)($service['freelancer_id'] ?? 0); ?>" style="display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-24); padding-bottom: var(--space-16); border-bottom: 1px solid var(--color-border); text-decoration: none;">
-                        <?php if (!empty($service['freelancer_avatar'])): ?>
-                            <img src="<?php echo htmlspecialchars($service['freelancer_avatar'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                 alt="<?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                 style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
-                        <?php else: ?>
-                            <div style="width: 44px; height: 44px; border-radius: 50%; background-color: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.1rem;">
-                                <?php echo strtoupper(substr($service['freelancer_name'], 0, 1)); ?>
-                            </div>
-                        <?php endif; ?>
-                        <div>
-                            <div style="font-weight: 600; color: var(--color-text-neutral);">
-                                <?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                <span class="badge badge-primary" style="font-size: 0.7rem; margin-left: 6px;">View Profile &rarr;</span>
-                            </div>
-                            <div class="text-caption" style="color: var(--color-text-muted);">
-                                <?php echo htmlspecialchars($service['freelancer_email'], ENT_QUOTES, 'UTF-8'); ?>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- Gallery Showcase -->
-                    <?php if (!empty($galleryImages)): ?>
-                        <div style="margin-bottom: var(--space-32);">
-                            <h3 style="margin-bottom: var(--space-12);">Service Gallery</h3>
-                            
-                            <!-- Featured Main Gallery Image -->
-                            <div style="width: 100%; height: 320px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); margin-bottom: var(--space-12); background-color: #f7fafc;">
-                                <img id="featured-gallery-img" src="<?php echo htmlspecialchars($galleryImages[0]['image_path'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                     alt="Service Main Image" style="width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s ease;">
-                            </div>
-
-                            <!-- Thumbnail Row -->
-                            <?php if (count($galleryImages) > 1): ?>
-                                <div style="display: flex; gap: var(--space-8); overflow-x: auto; padding-bottom: 4px;">
-                                    <?php foreach ($galleryImages as $index => $img): ?>
-                                        <img class="gallery-thumb" src="<?php echo htmlspecialchars($img['image_path'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                             alt="Gallery thumbnail" 
-                                             onclick="document.getElementById('featured-gallery-img').src = this.src"
-                                             style="width: 70px; height: 55px; border-radius: var(--radius-sm); object-fit: cover; cursor: pointer; border: 2px solid <?php echo $index === 0 ? 'var(--color-primary)' : 'var(--color-border)'; ?>;">
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <h3>Service Overview</h3>
-                    <div style="line-height: 1.7; color: var(--color-text-neutral); margin-bottom: var(--space-24);">
-                        <?php echo nl2br(htmlspecialchars($service['summary'], ENT_QUOTES, 'UTF-8')); ?>
-                    </div>
-                </div>
-
-                <!-- Client Reviews Section -->
-                <div class="sg-card">
-                    <h3 style="margin-bottom: var(--space-24);">Client Reviews</h3>
-                    <?php if (!empty($reviews)): ?>
-                        <div style="display: flex; flex-direction: column; gap: var(--space-16);">
-                            <?php foreach ($reviews as $review): ?>
-                                <div style="padding-bottom: var(--space-16); border-bottom: 1px solid var(--color-border);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
-                                        <div style="font-weight: 600; color: var(--color-text-neutral);">
-                                            <?php echo htmlspecialchars($review['client_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                        </div>
-                                        <div class="star-rating">
-                                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <span class="star <?php echo ($i <= $review['rating']) ? 'filled' : ''; ?>">★</span>
-                                            <?php endfor; ?>
-                                        </div>
-                                    </div>
-                                    <p style="margin: 0; color: var(--color-text-muted); font-size: var(--text-small);">
-                                        <?php echo htmlspecialchars($review['comment'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </p>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <p style="color: var(--color-text-muted);">No reviews yet for this service offer.</p>
-                    <?php endif; ?>
-                </div>
-
-            </div>
-
-            <!-- Right Column: Order CTA Sidebar -->
-            <div>
-                <div class="sg-card" style="position: sticky; top: var(--space-32);">
-                    <div style="font-size: var(--text-h2); font-weight: 700; color: var(--color-primary); margin-bottom: var(--space-8);">
-                        $<?php echo number_format((float)$service['price'], 2); ?>
-                    </div>
-                    <div style="color: var(--color-text-muted); font-size: var(--text-small); margin-bottom: var(--space-24);">
-                        Upfront fixed project rate
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; gap: var(--space-12);">
-                        <a href="/contact" class="btn btn-primary" style="width: 100%; text-align: center;">
-                            Contact Freelancer
-                        </a>
-                        <a href="/services" class="btn btn-secondary" style="width: 100%; text-align: center;">
-                            Explore More Services
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    <?php endif; ?>
-
+  <?php endif; ?>
 </main>
 
 <?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

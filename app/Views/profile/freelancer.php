@@ -1,213 +1,112 @@
 <?php
 // app/Views/profile/freelancer.php
-$pageTitle = htmlspecialchars($freelancer['name'] ?? 'Freelancer Profile') . " - Tandem";
+$pageTitle = $freelancer['name'] ?? 'Freelancer';
 include BASE_PATH . '/app/Views/layouts/header.php';
 
-/**
- * Format timestamp into relative human-readable time (e.g. "3 days ago")
- */
-function formatRelativeTime($datetime): string {
-    if (!$datetime) return 'Recently';
-    $time = is_numeric($datetime) ? (int)$datetime : strtotime($datetime);
-    if (!$time) return 'Recently';
-
-    $diff = time() - $time;
-    if ($diff < 60) {
-        return 'Just now';
-    } elseif ($diff < 3600) {
-        $mins = floor($diff / 60);
-        return $mins . ' minute' . ($mins > 1 ? 's' : '') . ' ago';
-    } elseif ($diff < 86400) {
-        $hours = floor($diff / 3600);
-        return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
-    } elseif ($diff < 2592000) {
-        $days = floor($diff / 86400);
-        return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
-    } elseif ($diff < 31536000) {
-        $months = floor($diff / 2592000);
-        return $months . ' month' . ($months > 1 ? 's' : '') . ' ago';
-    } else {
-        $years = floor($diff / 31536000);
-        return $years . ' year' . ($years > 1 ? 's' : '') . ' ago';
-    }
-}
-
-$ratingAvg = number_format((float)($freelancer['rating_avg'] ?? 5.0), 1);
-$reviewCount = (int)($freelancer['review_count'] ?? 0);
+$services    = $services ?? [];
+$reviews     = $reviews ?? [];
+$reviewCount = (int)($reviewCount ?? 0);
+$avg         = $reviewCount ? (float)$avgRating : 0;
+$isMe        = isLoggedIn() && (int)($_SESSION['user_id'] ?? 0) === (int)($freelancer['id'] ?? -1);
+$firstName   = explode(' ', $freelancer['name'] ?? '')[0];
+$startPrice  = $services ? min(array_map(fn($s) => (float)$s['price'], $services)) : 0;
 ?>
 
-<div class="container my-5">
-    <!-- Profile Hero Card -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
-        <div class="bg-primary text-white p-4 p-md-5 position-relative" style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);">
-            <div class="row align-items-center g-4">
-                <div class="col-auto">
-                    <?php if (!empty($freelancer['avatar_url'])): ?>
-                        <img src="<?= htmlspecialchars($freelancer['avatar_url']) ?>" alt="<?= htmlspecialchars($freelancer['name']) ?>" class="rounded-circle border border-4 border-white shadow-sm object-fit-cover" width="110" height="110">
-                    <?php else: ?>
-                        <div class="rounded-circle border border-4 border-white shadow-sm bg-white text-primary d-flex align-items-center justify-content-center fw-bold fs-1" style="width: 110px; height: 110px;">
-                            <?= strtoupper(substr($freelancer['name'] ?? 'F', 0, 1)) ?>
-                        </div>
+<main>
+  <?php if (!empty($dbError)): ?>
+    <div class="wrap mt-24"><div class="alert"><?= e($dbError) ?></div></div>
+  <?php endif; ?>
+
+  <?php if ($freelancer): ?>
+    <section class="profile-hero">
+      <div class="wrap profile-hero-inner">
+        <?= avatar($freelancer['avatar_url'], $freelancer['name'], 'xl') ?>
+        <div>
+          <span class="eyebrow">Freelancer</span>
+          <h1><?= e($freelancer['name']) ?></h1>
+          <div class="row row-wrap small" style="justify-content: inherit;">
+            <?php if ($reviewCount): ?>
+              <span class="rating-inline"><?= stars($avg) ?> <b><?= number_format($avg, 1) ?></b> <span class="muted">· <?= $reviewCount ?> review<?= $reviewCount === 1 ? '' : 's' ?></span></span>
+            <?php else: ?>
+              <span class="tag">New on Tandem</span>
+            <?php endif; ?>
+            <?php if ($isMe): ?>
+              <a href="/profile/edit" class="btn btn-sm">Edit profile</a>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div><b data-count="<?= count($services) ?>">0</b><span>Services</span></div>
+          <div><b data-count="<?= $reviewCount ?>">0</b><span>Reviews</span></div>
+          <?php if ($startPrice): ?>
+            <div><b><?= money($startPrice) ?></b><span>From</span></div>
+          <?php endif; ?>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top: 48px;">
+      <div class="wrap">
+        <div class="section-head" style="margin-bottom: 24px;">
+          <div>
+            <span class="eyebrow">On the shelf</span>
+            <h2 class="mt-8"><?= e($firstName) ?>'s services</h2>
+          </div>
+        </div>
+
+        <?php if ($services): ?>
+          <div class="cards">
+            <?php foreach ($services as $i => $service):
+              $service['freelancer_name']   = $freelancer['name'];
+              $service['freelancer_avatar'] = $freelancer['avatar_url'];
+              $delay = ($i % 3) * 70; ?>
+              <?php include BASE_PATH . '/app/Views/partials/service-card.php'; ?>
+            <?php endforeach; ?>
+          </div>
+        <?php else: ?>
+          <div class="empty">
+            <p class="muted mb-0"><?= $isMe ? 'You haven\'t listed anything yet.' : e($firstName) . ' hasn\'t listed anything yet.' ?></p>
+            <?php if ($isMe): ?><a href="/services/create" class="btn btn-accent btn-sm mt-16">List a service</a><?php endif; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top: 0;">
+      <div class="wrap"><div style="max-width: 760px;">
+        <span class="eyebrow">What clients said</span>
+        <h2 class="mt-8 mb-24">Reviews</h2>
+
+        <?php if ($reviews): ?>
+          <div class="panel" x-data="{ all: false }">
+            <?php foreach ($reviews as $n => $rev): ?>
+              <div class="review" <?= $n >= 4 ? 'x-show="all" x-cloak x-transition' : '' ?>>
+                <div class="review-head">
+                  <?= avatar($rev['client_avatar'] ?? null, $rev['client_name'], 'sm') ?>
+                  <div class="meta">
+                    <b><?= e($rev['client_name']) ?></b>
+                    <?php if (!empty($rev['service_title'])): ?>
+                      <a href="/services/<?= (int)$rev['service_id'] ?>" class="small muted"><?= e($rev['service_title']) ?></a>
                     <?php endif; ?>
+                  </div>
+                  <span style="text-align: right;">
+                    <?= stars((float)$rev['rating']) ?><br>
+                    <span class="small muted"><?= e(timeAgo($rev['created_at'])) ?></span>
+                  </span>
                 </div>
-
-                <div class="col">
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                        <span class="badge bg-white text-primary rounded-pill px-3 py-1 fw-semibold text-uppercase tracking-wider small">
-                            Verified Freelancer
-                        </span>
-                        <?php if ($reviewCount > 0): ?>
-                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold small">
-                                ★ <?= $ratingAvg ?> (<?= $reviewCount ?> <?= $reviewCount === 1 ? 'review' : 'reviews' ?>)
-                            </span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary-subtle text-white rounded-pill px-3 py-1 fw-normal small">
-                                New Freelancer
-                            </span>
-                        <?php endif; ?>
-                    </div>
-
-                    <h1 class="fw-bold mb-1 display-6"><?= htmlspecialchars($freelancer['name'] ?? 'Freelancer') ?></h1>
-                    <p class="fs-5 text-white-50 mb-0">
-                        <?= htmlspecialchars($freelancer['title'] ?? 'Professional Service Provider') ?>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="card-body p-4 p-md-5 bg-white">
-            <h5 class="fw-bold text-dark mb-3">About the Freelancer</h5>
-            <p class="text-secondary mb-0 leading-relaxed fs-6">
-                <?= !empty($freelancer['bio']) ? nl2br(htmlspecialchars($freelancer['bio'])) : 'No biography provided yet.' ?>
-            </p>
-        </div>
-    </div>
-
-    <!-- Main Content: Services & Reviews -->
-    <div class="row g-4">
-        <!-- Offered Services Column -->
-        <div class="col-lg-7">
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <h4 class="fw-bold text-dark mb-0">
-                    Services Offered 
-                    <span class="badge bg-light text-dark rounded-pill border fs-6 ms-2"><?= count($services) ?></span>
-                </h4>
-            </div>
-
-            <?php if (empty($services)): ?>
-                <div class="card border-0 shadow-sm rounded-4 p-4 text-center">
-                    <div class="text-muted py-4">This freelancer has not published any services yet.</div>
-                </div>
-            <?php else: ?>
-                <div class="row g-3">
-                    <?php foreach ($services as $service): ?>
-                        <div class="col-12">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 service-hover-card">
-                                <div class="row g-0 align-items-center">
-                                    <?php if (!empty($service['image_url'])): ?>
-                                        <div class="col-md-4">
-                                            <img src="<?= htmlspecialchars($service['image_url']) ?>" class="img-fluid rounded-start h-100 object-fit-cover w-100" style="min-height: 140px;" alt="<?= htmlspecialchars($service['title']) ?>">
-                                        </div>
-                                    <?php endif; ?>
-                                    <div class="<?= !empty($service['image_url']) ? 'col-md-8' : 'col-12' ?>">
-                                        <div class="card-body p-4">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill px-2 py-1 small">
-                                                    <?= htmlspecialchars($service['category_name'] ?? 'General') ?>
-                                                </span>
-                                                <span class="fw-bold text-success fs-5">$<?= number_format((float)$service['price'], 2) ?></span>
-                                            </div>
-                                            <h5 class="card-title fw-bold text-dark mb-2">
-                                                <a href="/services/<?= (int)$service['id'] ?>" class="text-decoration-none text-dark hover-primary">
-                                                    <?= htmlspecialchars($service['title']) ?>
-                                                </a>
-                                            </h5>
-                                            <p class="card-text text-muted small text-truncate mb-3" style="max-width: 90%;">
-                                                <?= htmlspecialchars($service['description'] ?? '') ?>
-                                            </p>
-                                            <a href="/services/<?= (int)$service['id'] ?>" class="btn btn-outline-primary btn-sm rounded-3 fw-semibold">
-                                                View Details &rarr;
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                <p><?= e($rev['comment']) ?></p>
+              </div>
+            <?php endforeach; ?>
+            <?php if (count($reviews) > 4): ?>
+              <button type="button" class="btn btn-sm mt-16" @click="all = !all" x-text="all ? 'Show fewer' : 'Show all <?= count($reviews) ?>'"></button>
             <?php endif; ?>
-        </div>
-
-        <!-- Client Reviews Column -->
-        <div class="col-lg-5">
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <h4 class="fw-bold text-dark mb-0">
-                    Client Reviews
-                    <span class="badge bg-light text-dark rounded-pill border fs-6 ms-2"><?= count($reviews) ?></span>
-                </h4>
-            </div>
-
-            <?php if (empty($reviews)): ?>
-                <div class="card border-0 shadow-sm rounded-4 p-4 text-center">
-                    <div class="text-muted py-4">No reviews yet for this freelancer.</div>
-                </div>
-            <?php else: ?>
-                <div class="d-flex flex-column gap-3">
-                    <?php foreach ($reviews as $rev): ?>
-                        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (!empty($rev['client_avatar'])): ?>
-                                        <img src="<?= htmlspecialchars($rev['client_avatar']) ?>" alt="Client" class="rounded-circle object-fit-cover" width="36" height="36">
-                                    <?php else: ?>
-                                        <div class="rounded-circle bg-light text-dark fw-bold d-flex align-items-center justify-content-center border" style="width: 36px; height: 36px;">
-                                            <?= strtoupper(substr($rev['client_name'] ?? 'C', 0, 1)) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div>
-                                        <div class="fw-semibold text-dark mb-0 lh-sm"><?= htmlspecialchars($rev['client_name'] ?? 'Verified Client') ?></div>
-                                        <small class="text-muted" style="font-size: 0.75rem;"><?= formatRelativeTime($rev['created_at']) ?></small>
-                                    </div>
-                                </div>
-                                <div class="text-warning fs-6">
-                                    <?php
-                                    $r = (int)($rev['rating'] ?? 5);
-                                    for ($i = 1; $i <= 5; $i++) {
-                                        echo $i <= $r ? '★' : '☆';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-
-                            <?php if (!empty($rev['service_title'])): ?>
-                                <div class="mb-2">
-                                    <small class="text-muted font-monospace" style="font-size: 0.75rem;">Service:</small>
-                                    <span class="small fw-semibold text-primary"><?= htmlspecialchars($rev['service_title']) ?></span>
-                                </div>
-                            <?php endif; ?>
-
-                            <p class="text-secondary small mb-0 leading-normal">
-                                "<?= htmlspecialchars($rev['comment']) ?>"
-                            </p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
-
-<style>
-.service-hover-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.service-hover-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
-}
-.hover-primary:hover {
-    color: #0d6efd !important;
-}
-</style>
+          </div>
+        <?php else: ?>
+          <p class="muted">No reviews yet — they show up after a finished project.</p>
+        <?php endif; ?>
+      </div></div>
+    </section>
+  <?php endif; ?>
+</main>
 
 <?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

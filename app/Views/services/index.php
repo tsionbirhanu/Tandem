@@ -1,224 +1,190 @@
 <?php
 // app/Views/services/index.php
+// Services directory. Filters update the results live via htmx (the whole page is
+// fetched and only #results is swapped); without JS it is a plain GET form.
+$pageTitle = 'Browse work';
 include BASE_PATH . '/app/Views/layouts/header.php';
+
+$sort = $sort ?? 'newest';
+$ratingOptions = ['' => 'Any rating', '3' => '3+ stars', '4' => '4+ stars', '4.5' => '4.5+ stars'];
+$currentRating = ($minRating ?? null) ? rtrim(rtrim(number_format((float)$minRating, 1, '.', ''), '0'), '.') : '';
+$canList = isLoggedIn() && in_array($_SESSION['user_role'] ?? '', ['freelancer', 'admin'], true);
 ?>
 
-<main class="page-main sg-container sg-section" style="padding-top: var(--space-48);">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-32); flex-wrap: wrap; gap: var(--space-16);">
-        <div>
-            <h1>Explore Services</h1>
-            <p class="text-small" style="color: var(--color-text-muted);">Hand-picked freelance services from top professionals.</p>
-        </div>
-        
-        <?php if (isLoggedIn() && in_array($_SESSION['user_role'] ?? '', ['freelancer', 'admin'], true)): ?>
-            <a href="/services/create" class="btn btn-primary">+ Offer New Service</a>
-        <?php endif; ?>
+<main class="wrap">
+  <header class="page-head row between row-wrap" style="align-items: flex-end;">
+    <div>
+      <span class="eyebrow">The directory</span>
+      <h1>Browse <em>work</em></h1>
+      <p class="muted mb-0">Fixed starting prices, real reviews. Narrow it down on the left.</p>
     </div>
-
-    <?php if (!empty($dbError)): ?>
-        <div class="alert alert-error" style="margin-bottom: var(--space-32);">
-            <strong>Database Error:</strong> <?php echo htmlspecialchars($dbError, ENT_QUOTES, 'UTF-8'); ?>
-        </div>
+    <?php if ($canList): ?>
+      <a href="/services/create" class="btn btn-accent">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        List a service
+      </a>
     <?php endif; ?>
+  </header>
 
-    <!-- Search & Filter Control Bar -->
-    <div class="sg-card" style="margin-bottom: var(--space-32); padding: var(--space-24);">
-        <form action="/services" method="GET" style="display: flex; flex-direction: column; gap: var(--space-20);">
-            
-            <!-- Top Search Bar & Sort Row -->
-            <div style="display: flex; gap: var(--space-16); flex-wrap: wrap; align-items: flex-end;">
-                
-                <div style="flex: 2; min-width: 260px;">
-                    <label class="form-label" for="search">Search Services</label>
-                    <input type="text" id="search" name="search" class="form-input" 
-                           placeholder="Search by service title or keywords..." 
-                           value="<?php echo htmlspecialchars($search ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                </div>
+  <?php if (!empty($dbError)): ?>
+    <div class="alert"><strong>Couldn't load services.</strong> <?= e($dbError) ?></div>
+  <?php endif; ?>
 
-                <div style="flex: 1; min-width: 180px;">
-                    <label class="form-label" for="category">Category</label>
-                    <select id="category" name="category" class="form-select">
-                        <option value="">All Categories</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo htmlspecialchars($cat['slug'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                    <?php echo (($selectedCategory ?? '') === $cat['slug']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+  <form id="directory" class="directory" action="/services" method="GET"
+        x-data="{
+          filtersOpen: false,
+          clear(key) {
+            const f = this.$root;
+            if (key === 'search') f.querySelector('#q').value = '';
+            if (key === 'category') f.querySelector('input[name=category][value=\'\']').checked = true;
+            if (key === 'price') { f.querySelector('#min_price').value = ''; f.querySelector('#max_price').value = ''; }
+            if (key === 'min_rating') f.querySelector('input[name=min_rating][value=\'\']').checked = true;
+            htmx.trigger(f, 'change');
+          }
+        }"
+        hx-get="/services"
+        hx-trigger="submit, change, keyup changed delay:300ms from:#q, keyup changed delay:500ms from:.price-input"
+        hx-target="#results" hx-select="#results" hx-swap="outerHTML"
+        hx-push-url="true" hx-indicator="#loading-bar">
 
-                <div style="flex: 1; min-width: 180px;">
-                    <label class="form-label" for="sort">Sort By</label>
-                    <select id="sort" name="sort" class="form-select" onchange="this.form.submit()">
-                        <option value="newest" <?php echo (($sort ?? 'newest') === 'newest') ? 'selected' : ''; ?>>Newest Arrivals</option>
-                        <option value="price_asc" <?php echo (($sort ?? '') === 'price_asc') ? 'selected' : ''; ?>>Price: Low to High</option>
-                        <option value="price_desc" <?php echo (($sort ?? '') === 'price_desc') ? 'selected' : ''; ?>>Price: High to Low</option>
-                        <option value="rating_desc" <?php echo (($sort ?? '') === 'rating_desc') ? 'selected' : ''; ?>>Top Rated</option>
-                    </select>
-                </div>
+    <!-- Filters -->
+    <aside class="filters" :class="{ 'is-open': filtersOpen }" aria-label="Filters">
+      <button type="button" class="btn btn-sm filters-toggle" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+        <span x-text="filtersOpen ? 'Hide filters' : 'Filters'">Filters</span>
+      </button>
 
-            </div>
-
-            <!-- Detailed Price Range & Rating Filter Row -->
-            <div style="display: flex; gap: var(--space-16); flex-wrap: wrap; align-items: flex-end; border-top: 1px dashed var(--color-border); padding-top: var(--space-16);">
-                
-                <div style="flex: 1; min-width: 140px;">
-                    <label class="form-label" for="min_price">Min Price ($)</label>
-                    <input type="number" id="min_price" name="min_price" min="0" step="10" class="form-input" 
-                           placeholder="e.g. 50" 
-                           value="<?php echo ($minPrice !== null) ? htmlspecialchars($minPrice, ENT_QUOTES, 'UTF-8') : ''; ?>">
-                </div>
-
-                <div style="flex: 1; min-width: 140px;">
-                    <label class="form-label" for="max_price">Max Price ($)</label>
-                    <input type="number" id="max_price" name="max_price" min="0" step="10" class="form-input" 
-                           placeholder="e.g. 2000" 
-                           value="<?php echo ($maxPrice !== null) ? htmlspecialchars($maxPrice, ENT_QUOTES, 'UTF-8') : ''; ?>">
-                </div>
-
-                <div style="flex: 1; min-width: 160px;">
-                    <label class="form-label" for="min_rating">Minimum Rating</label>
-                    <select id="min_rating" name="min_rating" class="form-select">
-                        <option value="">Any Rating</option>
-                        <option value="4.5" <?php echo (($minRating ?? 0) == 4.5) ? 'selected' : ''; ?>>4.5+ Stars ★★★★★</option>
-                        <option value="4.0" <?php echo (($minRating ?? 0) == 4.0) ? 'selected' : ''; ?>>4.0+ Stars ★★★★☆</option>
-                        <option value="3.0" <?php echo (($minRating ?? 0) == 3.0) ? 'selected' : ''; ?>>3.0+ Stars ★★★☆☆</option>
-                    </select>
-                </div>
-
-                <div style="display: flex; gap: var(--space-8); min-width: 180px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply Filters</button>
-                    <a href="/services" class="btn btn-secondary">Clear</a>
-                </div>
-
-            </div>
-
-        </form>
-    </div>
-
-    <!-- Active Removable Filter Chips Bar -->
-    <?php if (!empty($activeChips)): ?>
-        <div style="display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; margin-bottom: var(--space-24); background-color: rgba(44, 95, 93, 0.05); padding: var(--space-12) var(--space-16); border-radius: var(--radius-sm); border: 1px solid rgba(44, 95, 93, 0.15);">
-            <span style="font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; color: var(--color-primary); letter-spacing: 0.05em;">Active Filters:</span>
-            
-            <?php foreach ($activeChips as $chip): ?>
-                <a href="<?php echo htmlspecialchars($chip['remove_url'], ENT_QUOTES, 'UTF-8'); ?>" 
-                   style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background-color: #fff; border: 1px solid var(--color-primary); color: var(--color-primary); padding: 4px 10px; border-radius: 16px; font-size: 0.82rem; font-weight: 500; transition: all 0.2s ease;">
-                    <span><?php echo $chip['label']; ?></span>
-                    <span style="font-weight: 700; font-size: 1rem; line-height: 1;">&times;</span>
-                </a>
+      <div class="filters-body">
+        <div class="filter-group">
+          <p class="filter-title">Category</p>
+          <div class="chips">
+            <label class="chip">
+              <input type="radio" name="category" value="" <?= empty($selectedCategory) ? 'checked' : '' ?>>
+              <span>Everything</span>
+            </label>
+            <?php foreach ($categories as $cat): ?>
+              <label class="chip">
+                <input type="radio" name="category" value="<?= e($cat['slug']) ?>" <?= ($selectedCategory ?? '') === $cat['slug'] ? 'checked' : '' ?>>
+                <span><?= e($cat['name']) ?> <span class="count"><?= (int)($cat['service_count'] ?? 0) ?></span></span>
+              </label>
             <?php endforeach; ?>
-
-            <a href="/services" style="font-size: 0.82rem; color: var(--color-error); text-decoration: underline; margin-left: auto;">
-                Reset All Filters
-            </a>
+          </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Results Count Meta Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-20); color: var(--color-text-muted); font-size: var(--text-small);">
-        <div>
-            Showing <strong><?php echo count($services); ?></strong> of <strong><?php echo (int)($total ?? count($services)); ?></strong> available service offers
-            <?php if (($totalPages ?? 1) > 1): ?>
-                (Page <?php echo (int)($page ?? 1); ?> of <?php echo (int)$totalPages; ?>)
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Services Grid -->
-    <div class="sg-grid-auto">
-        <?php if (!empty($services)): ?>
-            <?php foreach ($services as $service): ?>
-                <a href="/services/<?php echo (int)$service['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
-                    <article class="card-listing" style="height: 100%;">
-                        
-                        <!-- Primary Image or Card Placeholder -->
-                        <?php if (!empty($service['primary_image'])): ?>
-                            <div style="height: 160px; overflow: hidden; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background-color: #f7fafc;">
-                                <img src="<?php echo htmlspecialchars($service['primary_image'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                     alt="<?php echo htmlspecialchars($service['title'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                     style="width: 100%; height: 100%; object-fit: cover;">
-                            </div>
-                        <?php else: ?>
-                            <div class="card-image-placeholder"></div>
-                        <?php endif; ?>
-
-                        <div class="card-content">
-                            <div class="card-badge-row">
-                                <span class="badge badge-neutral"><?php echo htmlspecialchars($service['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                <?php if (($service['rating'] ?? 0) >= 4.9): ?>
-                                    <span class="badge badge-success">Top Rated</span>
-                                <?php endif; ?>
-                            </div>
-                            <h3 class="card-title"><?php echo htmlspecialchars($service['title'], ENT_QUOTES, 'UTF-8'); ?></h3>
-                            <p class="card-desc">By <?php echo htmlspecialchars($service['freelancer_name'], ENT_QUOTES, 'UTF-8'); ?></p>
-                            <div class="card-footer">
-                                <div class="star-rating">
-                                    <span class="star filled">★</span>
-                                    <span class="rating-text"><?php echo number_format((float)($service['rating'] ?? 0), 1); ?> (<?php echo (int)($service['reviews'] ?? 0); ?>)</span>
-                                </div>
-                                <div class="card-price">Starting at $<?php echo number_format((float)$service['price'], 2); ?></div>
-                            </div>
-                        </div>
-                    </article>
-                </a>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: var(--space-48) 0;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: var(--space-16); color: var(--color-text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <h3>No Services Found</h3>
-                <p>No services matched your current filter criteria.</p>
-                <a href="/services" class="btn btn-secondary" style="margin-top: var(--space-12);">Reset All Filters</a>
+        <div class="filter-group">
+          <p class="filter-title">Budget</p>
+          <div class="price-pair">
+            <div class="input-prefix">
+              <span>$</span>
+              <label for="min_price" class="sr-only">Minimum price</label>
+              <input class="input price-input" type="number" id="min_price" name="min_price" min="0" step="50" placeholder="Min" inputmode="numeric"
+                     value="<?= $minPrice !== null ? e((int)$minPrice) : '' ?>">
             </div>
-        <?php endif; ?>
-    </div>
+            <span class="muted">–</span>
+            <div class="input-prefix">
+              <span>$</span>
+              <label for="max_price" class="sr-only">Maximum price</label>
+              <input class="input price-input" type="number" id="max_price" name="max_price" min="0" step="50" placeholder="Max" inputmode="numeric"
+                     value="<?= $maxPrice !== null ? e((int)$maxPrice) : '' ?>">
+            </div>
+          </div>
+        </div>
 
-    <!-- Pagination Bar -->
-    <?php if (($totalPages ?? 1) > 1): ?>
-        <div style="display: flex; justify-content: center; align-items: center; gap: var(--space-8); margin-top: var(--space-48);">
-            
-            <!-- Previous Page Button -->
+        <div class="filter-group">
+          <p class="filter-title">Rating</p>
+          <div class="chips">
+            <?php foreach ($ratingOptions as $value => $label): ?>
+              <label class="chip">
+                <input type="radio" name="min_rating" value="<?= e($value) ?>" <?= (string)$value === $currentRating ? 'checked' : '' ?>>
+                <span><?= $value !== '' ? '★ ' : '' ?><?= e($label) ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+
+        <noscript><button type="submit" class="btn btn-block mt-16">Apply filters</button></noscript>
+      </div>
+    </aside>
+
+    <!-- Results -->
+    <section aria-label="Results" style="min-width: 0;">
+      <div class="search-bar">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L18 18"/></svg>
+        <label for="q" class="sr-only">Search</label>
+        <input type="search" id="q" name="search" placeholder="Search titles and descriptions…" value="<?= e($search ?? '') ?>" data-hotkey="/" autocomplete="off">
+        <span class="kbd hide-sm" aria-hidden="true">/</span>
+        <label for="sort" class="sr-only">Sort by</label>
+        <select id="sort" name="sort" class="select">
+          <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
+          <option value="rating_desc" <?= $sort === 'rating_desc' ? 'selected' : '' ?>>Best rated</option>
+          <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price ↑</option>
+          <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
+        </select>
+      </div>
+
+      <div id="results">
+        <div class="results-meta">
+          <p class="mb-0">
+            <b style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 500;"><?= (int)$total ?></b>
+            <span class="muted"><?= (int)$total === 1 ? 'service' : 'services' ?><?= ($totalPages ?? 1) > 1 ? ' · page ' . (int)$page . ' of ' . (int)$totalPages : '' ?></span>
+          </p>
+          <?php if (!empty($activeChips)): ?>
+            <div class="active-chips">
+              <?php foreach ($activeChips as $chip): ?>
+                <?php /* labels are escaped by the controller */ ?>
+                <a class="active-chip" href="<?= e($chip['remove_url']) ?>" @click.prevent="clear('<?= e($chip['key']) ?>')" title="Remove filter">
+                  <?= $chip['label'] ?> <i aria-hidden="true">×</i>
+                </a>
+              <?php endforeach; ?>
+              <a href="/services" class="small link" style="align-self: center;">Clear all</a>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <div class="cards">
+          <?php if (!empty($services)): ?>
+            <?php foreach ($services as $i => $service): $delay = ($i % 3) * 60; ?>
+              <?php include BASE_PATH . '/app/Views/partials/service-card.php'; ?>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="empty">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                <circle cx="28" cy="28" r="16"/><path d="M40 40l12 12"/><path d="M22 26c2-3 6-4 9-2" stroke="#e0532f"/>
+              </svg>
+              <h3>Nothing matches that — yet.</h3>
+              <p class="muted">Try a broader search, or loosen the budget a little.</p>
+              <a href="/services" class="btn btn-sm mt-8">Clear filters</a>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <?php if (($totalPages ?? 1) > 1): ?>
+          <nav class="pager" aria-label="Pagination"
+               hx-boost="true" hx-target="#results" hx-select="#results" hx-swap="outerHTML show:#directory:top" hx-indicator="#loading-bar">
             <?php if ($page > 1): ?>
-                <a href="<?php echo htmlspecialchars($buildPageUrl($page - 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-secondary" style="padding: var(--space-8) var(--space-16);">
-                    &larr; Previous
-                </a>
+              <a href="<?= e($buildPageUrl($page - 1)) ?>" aria-label="Previous page">←</a>
             <?php else: ?>
-                <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; padding: var(--space-8) var(--space-16);">
-                    &larr; Previous
-                </span>
+              <span class="is-disabled">←</span>
             <?php endif; ?>
 
-            <!-- Page Numbers -->
-            <div style="display: flex; gap: 4px;">
-                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <?php if ($p === $page): ?>
-                        <span class="btn btn-primary" style="padding: var(--space-8) var(--space-12); font-weight: 600;">
-                            <?php echo $p; ?>
-                        </span>
-                    <?php else: ?>
-                        <a href="<?php echo htmlspecialchars($buildPageUrl($p), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-secondary" style="padding: var(--space-8) var(--space-12);">
-                            <?php echo $p; ?>
-                        </a>
-                    <?php endif; ?>
-                <?php endfor; ?>
-            </div>
+            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+              <?php if ($p === $page): ?>
+                <span class="is-current" aria-current="page"><?= $p ?></span>
+              <?php else: ?>
+                <a href="<?= e($buildPageUrl($p)) ?>"><?= $p ?></a>
+              <?php endif; ?>
+            <?php endfor; ?>
 
-            <!-- Next Page Button -->
             <?php if ($page < $totalPages): ?>
-                <a href="<?php echo htmlspecialchars($buildPageUrl($page + 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-secondary" style="padding: var(--space-8) var(--space-16);">
-                    Next &rarr;
-                </a>
+              <a href="<?= e($buildPageUrl($page + 1)) ?>" aria-label="Next page">→</a>
             <?php else: ?>
-                <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; padding: var(--space-8) var(--space-16);">
-                    Next &rarr;
-                </span>
+              <span class="is-disabled">→</span>
             <?php endif; ?>
-
-        </div>
-    <?php endif; ?>
-
+          </nav>
+        <?php endif; ?>
+      </div>
+    </section>
+  </form>
 </main>
 
 <?php include BASE_PATH . '/app/Views/layouts/footer.php'; ?>

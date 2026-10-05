@@ -36,7 +36,7 @@ class Message {
      * Creates a new message record.
      */
     public function create(array $data): int {
-        $stmt = $this->db->prepare("INSERT INTO messages (sender_id, receiver_id, project_request_id, body, is_read, created_at) VALUES (:sender_id, :receiver_id, :project_request_id, :body, 0, NOW())");
+        $stmt = $this->db->prepare("INSERT INTO messages (sender_id, receiver_id, project_request_id, body, is_read, created_at) VALUES (:sender_id, :receiver_id, :project_request_id, :body, FALSE, NOW())");
         $stmt->execute([
             ':sender_id'          => $data['sender_id'],
             ':receiver_id'        => $data['receiver_id'],
@@ -50,7 +50,7 @@ class Message {
      * Marks a message as read.
      */
     public function markAsRead(int $messageId): bool {
-        $stmt = $this->db->prepare("UPDATE messages SET is_read = 1 WHERE id = :id");
+        $stmt = $this->db->prepare("UPDATE messages SET is_read = TRUE WHERE id = :id");
         return $stmt->execute([':id' => $messageId]);
     }
 
@@ -58,7 +58,7 @@ class Message {
      * Returns count of unread messages for a recipient user.
      */
     public function unreadCount(int $userId): int {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = :id AND is_read = 0");
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = :id AND is_read = FALSE");
         $stmt->execute([':id' => $userId]);
         return (int)$stmt->fetchColumn();
     }

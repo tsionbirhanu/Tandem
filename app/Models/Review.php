@@ -63,7 +63,7 @@ class Review {
      */
     public function getByServiceId(int $serviceId): array {
         $stmt = $this->db->prepare("
-            SELECT r.*, u.name AS client_name 
+            SELECT r.*, u.name AS client_name, u.avatar_url AS client_avatar
             FROM reviews r
             JOIN project_requests pr ON pr.id = r.project_request_id
             JOIN users u ON u.id = r.client_id
@@ -77,6 +77,26 @@ class Review {
     /**
      * Checks if a review has already been submitted for a project request.
      */
+    /**
+     * Most recent reviews across the platform, with client and freelancer names.
+     */
+    public function latest(int $limit = 3): array {
+        $stmt = $this->db->prepare("
+            SELECT r.rating, r.comment, r.created_at,
+                   c.name AS client_name, c.avatar_url AS client_avatar,
+                   f.id AS freelancer_id, f.name AS freelancer_name
+            FROM reviews r
+            JOIN users c ON c.id = r.client_id
+            JOIN users f ON f.id = r.freelancer_id
+            WHERE r.comment IS NOT NULL
+            ORDER BY r.created_at DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function hasReviewed(int $projectRequestId): bool {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM reviews WHERE project_request_id = :pr_id");
         $stmt->execute([':pr_id' => $projectRequestId]);

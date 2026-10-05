@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\ServiceImage;
 use App\Models\Category;
 use App\Models\Review;
+use App\Models\ProjectRequest;
 use Exception;
 
 class ServiceController {
@@ -37,7 +38,7 @@ class ServiceController {
             $serviceModel = new Service($pdo);
             $categoryModel = new Category($pdo);
 
-            $categories = $categoryModel->all();
+            $categories = $categoryModel->allWithCounts();
             $result = $serviceModel->filter([
                 'search'     => $search,
                 'category'   => $selectedCategory,
@@ -148,6 +149,8 @@ class ServiceController {
         $service = null;
         $reviews = [];
         $galleryImages = [];
+        $moreServices = [];
+        $openRequest = null;
         $dbError = null;
 
         try {
@@ -160,7 +163,15 @@ class ServiceController {
 
             if ($service) {
                 $reviews       = $reviewModel->getByServiceId($id);
+                $moreServices  = array_slice(array_values(array_filter(
+                    $serviceModel->findByFreelancer((int)$service['freelancer_id']),
+                    fn($s) => (int)$s['id'] !== $id
+                )), 0, 3);
                 $galleryImages = $imageModel->getByServiceId($id);
+
+                if (($_SESSION['user_role'] ?? '') === 'client') {
+                    $openRequest = (new ProjectRequest($pdo))->findOpenForClientAndService((int)$_SESSION['user_id'], $id);
+                }
             }
         } catch (Exception $e) {
             $dbError = "Database Error: Unable to fetch service details. " . $e->getMessage();
@@ -175,6 +186,8 @@ class ServiceController {
         render('services/details', [
             'service'       => $service,
             'reviews'       => $reviews,
+            'moreServices'  => $moreServices,
+            'openRequest'   => $openRequest,
             'galleryImages' => $galleryImages,
             'dbError'       => $dbError,
         ]);
@@ -269,7 +282,7 @@ class ServiceController {
                     'title'         => $title,
                     'category_id'   => $categoryId,
                     'price'         => (float)$price,
-                    'summary'       => $summary,
+                    'description'   => $summary,
                     'freelancer_id' => $_SESSION['user_id'] ?? 1,
                 ]);
 
@@ -338,7 +351,7 @@ class ServiceController {
             'title'         => $service['title'] ?? '',
             'categoryId'    => (int)($service['category_id'] ?? 0),
             'price'         => $service['price'] ?? '',
-            'summary'       => $service['summary'] ?? '',
+            'summary'       => $service['description'] ?? '',
             'errors'        => [],
             'dbError'       => $dbError,
         ]);
@@ -418,7 +431,7 @@ class ServiceController {
                     'title'       => $title,
                     'category_id' => $categoryId,
                     'price'       => (float)$price,
-                    'summary'     => $summary,
+                    'description' => $summary,
                 ]);
 
                 // Delete specified images

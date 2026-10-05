@@ -20,6 +20,7 @@ class Service {
                        c.name AS category_name, 
                        c.slug AS category_slug, 
                        u.name AS freelancer_name, 
+                       u.avatar_url AS freelancer_avatar,
                        COALESCE(AVG(r.rating), 5.0) AS rating, 
                        COUNT(r.id) AS reviews 
                 FROM services s 
@@ -27,7 +28,7 @@ class Service {
                 JOIN users u ON s.freelancer_id = u.id 
                 LEFT JOIN project_requests pr ON pr.service_id = s.id 
                 LEFT JOIN reviews r ON r.project_request_id = pr.id 
-                GROUP BY s.id 
+                GROUP BY s.id, c.id, u.id
                 ORDER BY s.created_at DESC";
         return $this->db->query($sql)->fetchAll();
     }
@@ -37,17 +38,20 @@ class Service {
      */
     public function featured(int $limit = 3): array {
         $sql = "SELECT s.*, 
-                       c.name AS category_name, 
-                       u.name AS freelancer_name, 
-                       COALESCE(AVG(r.rating), 5.0) AS rating, 
-                       COUNT(r.id) AS reviews 
-                FROM services s 
-                JOIN categories c ON s.category_id = c.id 
-                JOIN users u ON s.freelancer_id = u.id 
-                LEFT JOIN project_requests pr ON pr.service_id = s.id 
-                LEFT JOIN reviews r ON r.project_request_id = pr.id 
-                GROUP BY s.id 
-                ORDER BY rating DESC, s.created_at DESC 
+                       c.name AS category_name,
+                       c.slug AS category_slug,
+                       u.name AS freelancer_name,
+                       u.avatar_url AS freelancer_avatar,
+                       (SELECT image_path FROM service_images WHERE service_id = s.id ORDER BY sort_order ASC, id ASC LIMIT 1) AS primary_image,
+                       COALESCE(AVG(r.rating), 5.0) AS rating,
+                       COUNT(r.id) AS reviews
+                FROM services s
+                JOIN categories c ON s.category_id = c.id
+                JOIN users u ON s.freelancer_id = u.id
+                LEFT JOIN project_requests pr ON pr.service_id = s.id
+                LEFT JOIN reviews r ON r.project_request_id = pr.id
+                GROUP BY s.id, c.id, u.id
+                ORDER BY rating DESC, reviews DESC, s.created_at DESC
                 LIMIT :limit";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -63,7 +67,7 @@ class Service {
                        c.name AS category_name, 
                        c.slug AS category_slug, 
                        u.name AS freelancer_name, 
-                       u.email AS freelancer_email, 
+                       u.email AS freelancer_email,
                        u.avatar_url AS freelancer_avatar,
                        COALESCE(AVG(r.rating), 5.0) AS rating, 
                        COUNT(r.id) AS reviews 
@@ -73,7 +77,7 @@ class Service {
                 LEFT JOIN project_requests pr ON pr.service_id = s.id 
                 LEFT JOIN reviews r ON r.project_request_id = pr.id 
                 WHERE s.id = :id 
-                GROUP BY s.id";
+                GROUP BY s.id, c.id, u.id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         $service = $stmt->fetch();
@@ -88,6 +92,7 @@ class Service {
                        c.name AS category_name, 
                        c.slug AS category_slug, 
                        u.name AS freelancer_name, 
+                       u.avatar_url AS freelancer_avatar,
                        COALESCE(AVG(r.rating), 5.0) AS rating, 
                        COUNT(r.id) AS reviews 
                 FROM services s 
@@ -96,7 +101,7 @@ class Service {
                 LEFT JOIN project_requests pr ON pr.service_id = s.id 
                 LEFT JOIN reviews r ON r.project_request_id = pr.id 
                 WHERE c.slug = :slug 
-                GROUP BY s.id 
+                GROUP BY s.id, c.id, u.id
                 ORDER BY s.created_at DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':slug' => $slug]);
@@ -136,9 +141,8 @@ class Service {
      * Updates an existing service record.
      */
     public function update(int $id, array $data): bool {
-        $stmt = $this->db->prepare("UPDATE services SET freelancer_id = :freelancer_id, category_id = :category_id, title = :title, description = :description, price = :price WHERE id = :id");
+        $stmt = $this->db->prepare("UPDATE services SET category_id = :category_id, title = :title, description = :description, price = :price WHERE id = :id");
         return $stmt->execute([
-            ':freelancer_id' => $data['freelancer_id'],
             ':category_id'   => $data['category_id'],
             ':title'         => $data['title'],
             ':description'   => $data['description'],
@@ -204,8 +208,8 @@ class Service {
         $bindings = [];
 
         if (!empty($search)) {
-            $where[] = "(s.title LIKE :search OR s.description LIKE :search)";
-            $bindings[':search'] = '%' . $search . '%';
+            $where[] = "(s.title ILIKE :search_title OR s.description ILIKE :search_desc)";
+            $bindings[':search_title'] = $bindings[':search_desc'] = '%' . $search . '%';
         }
 
         if (!empty($category)) {
@@ -227,7 +231,7 @@ class Service {
 
         $having = [];
         if ($minRating !== null && $minRating > 0) {
-            $having[] = "rating >= :min_rating";
+            $having[] = "AVG(r.rating) >= :min_rating"; // unreviewed services (NULL average) are excluded
             $bindings[':min_rating'] = $minRating;
         }
         $havingClause = !empty($having) ? 'HAVING ' . implode(' AND ', $having) : '';
@@ -245,16 +249,18 @@ class Service {
                        c.name AS category_name, 
                        c.slug AS category_slug, 
                        u.name AS freelancer_name, 
+                       u.avatar_url AS freelancer_avatar,
                        (SELECT image_path FROM service_images WHERE service_id = s.id ORDER BY sort_order ASC, id ASC LIMIT 1) AS primary_image,
                        COALESCE(AVG(r.rating), 5.0) AS rating, 
-                       COUNT(r.id) AS reviews 
+                       COUNT(r.id) AS reviews, 
+                       COUNT(*) OVER () AS total_count -- total matching rows before LIMIT, saves a separate COUNT query
                 FROM services s 
                 JOIN categories c ON s.category_id = c.id 
                 JOIN users u ON s.freelancer_id = u.id 
                 LEFT JOIN project_requests pr ON pr.service_id = s.id 
                 LEFT JOIN reviews r ON r.project_request_id = pr.id 
                 {$whereClause}
-                GROUP BY s.id 
+                GROUP BY s.id, c.id, u.id
                 {$havingClause}
                 ORDER BY {$orderBy} 
                 LIMIT :limit OFFSET :offset";
@@ -268,25 +274,29 @@ class Service {
         $stmt->execute();
         $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Count Total Query for Pagination
-        $countSql = "SELECT COUNT(*) FROM (
-                        SELECT s.id, COALESCE(AVG(r.rating), 5.0) AS rating
-                        FROM services s 
-                        JOIN categories c ON s.category_id = c.id 
-                        JOIN users u ON s.freelancer_id = u.id 
-                        LEFT JOIN project_requests pr ON pr.service_id = s.id 
-                        LEFT JOIN reviews r ON r.project_request_id = pr.id 
-                        {$whereClause}
-                        GROUP BY s.id 
-                        {$havingClause}
-                     ) AS total_subquery";
+        $total = $services ? (int)$services[0]["total_count"] : 0;
 
-        $countStmt = $this->db->prepare($countSql);
-        foreach ($bindings as $param => $val) {
-            $countStmt->bindValue($param, $val);
+        // Only an out-of-range page returns no rows while matches still exist; count them separately then
+        if (!$services && $offset > 0) {
+            $countSql = "SELECT COUNT(*) FROM (
+                            SELECT s.id, COALESCE(AVG(r.rating), 5.0) AS rating
+                            FROM services s 
+                            JOIN categories c ON s.category_id = c.id 
+                            JOIN users u ON s.freelancer_id = u.id 
+                            LEFT JOIN project_requests pr ON pr.service_id = s.id 
+                            LEFT JOIN reviews r ON r.project_request_id = pr.id 
+                            {$whereClause}
+                            GROUP BY s.id, c.id, u.id
+                            {$havingClause}
+                         ) AS total_subquery";
+
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($bindings as $param => $val) {
+                $countStmt->bindValue($param, $val);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
         }
-        $countStmt->execute();
-        $total = (int)$countStmt->fetchColumn();
 
         $totalPages = (int)ceil($total / $perPage);
 

@@ -3562,7 +3562,6 @@ transform: translateY(-2px);
 }
 
 .hero-grid {
-  grid-template-columns: 1fr !important;
   text-align: center;
   justify-items: center;
 }
@@ -3684,3 +3683,105 @@ transform: translateY(-2px);
 .table th { background: rgba(0,0,0,0.02); }
 .table tr { transition: background 0.2s; }
 .table tbody tr:hover { background: rgba(0,0,0,0.01); }
+
+/* ==========================================================================
+   Full System Responsive Overrides
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Layout & Containers */
+  .wrap {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* Typography & Spacing */
+  h1 { font-size: 2.2rem !important; }
+  h2 { font-size: 1.8rem !important; }
+  
+  .section { padding: 32px 0 !important; }
+  .mt-32 { margin-top: 24px !important; }
+  
+  /* Forms & Cards */
+  .contact-form-card, 
+  .panel, 
+  .dash-main {
+    padding: 16px !important;
+  }
+  
+  .row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .row.between {
+    flex-direction: column !important;
+    gap: 16px;
+  }
+  
+  /* Keep specific rows horizontal */
+  .row.rating-summary,
+  .nav-actions {
+    flex-direction: row !important;
+  }
+  
+  .nav-inner {
+    justify-content: space-between !important;
+    flex-direction: row !important;
+  }
+  
+  /* Tables */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 0;
+  }
+  
+  .table {
+    min-width: 600px;
+  }
+
+  /* Grid Resets */
+  .cat-grid,
+  .cards,
+  .quotes,
+  .steps,
+  .hero-grid,
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Details Page */
+  .detail {
+    grid-template-columns: 1fr !important;
+  }
+  
+  aside {
+    margin-top: 32px;
+  }
+  
+  .buy-box {
+    position: static !important;
+  }
+
+  /* Dashboard */
+  .dash {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .dash-side {
+    display: none !important;
+  }
+  
+  .mobile-dash-nav {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 12px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  h1 { font-size: 1.8rem !important; }
+  .btn-lg { width: 100% !important; text-align: center; justify-content: center; }
+}

@@ -83,7 +83,6 @@ $heroReview = $latestReviews[0] ?? null;
           <!-- <span class="eyebrow">How it works</span> -->
           <h2>No bidding wars. <em>No mystery.</em></h2>
         </div>
-        <p class="muted" style="max-width: 24em; margin: 0;">Clear pricing and predefined scopes. Know exactly what you'll get before you say hello.</p>
       </div>
       <div class="steps reveal">
         <div class="step">
@@ -206,12 +205,6 @@ $heroReview = $latestReviews[0] ?? null;
   <section class="section" style="padding-top: 24px;">
     <div class="wrap">
       <div class="cta-band reveal">
-        <svg class="cta-band-doodle" viewBox="0 0 200 200" fill="none" stroke="#fff" stroke-width="2"
-          aria-hidden="true">
-          <circle cx="100" cy="100" r="40" />
-          <circle cx="100" cy="100" r="70" stroke-dasharray="4 8" />
-          <circle cx="100" cy="100" r="96" />
-        </svg>
         <div>
           <span class="eyebrow" style="color: rgba(255,255,255,.75);">For freelancers</span>
           <h2 class="mt-16">Good at something? <em>Put it on the shelf.</em></h2>

@@ -3562,6 +3562,7 @@ transform: translateY(-2px);
 }
 
 .hero-grid {
+  grid-template-columns: 1fr !important;
   text-align: center;
   justify-items: center;
 }

@@ -33,10 +33,6 @@ if ($me && empty($errors) && empty($isSuccess)) {
         <li class="contact-fact"><span>Not for</span><span style="float: right; font-weight: 600;">payments (yet)</span></li>
       </ul>
 
-      <svg width="180" height="90" viewBox="0 0 180 90" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hide-sm" aria-hidden="true" style="margin-top: 28px;">
-        <path class="arrow-path" d="M6 70 C 40 20, 90 90, 130 34" stroke-dasharray="3 7"/>
-        <path d="M130 34 l26 -18 l-8 30 l-7 -9 z" fill="#e0532f" stroke="#1d1b17" style="animation: float-in 0.8s 1.5s both;" />
-      </svg>
     </div>
 
     <div>

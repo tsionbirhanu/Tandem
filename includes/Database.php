@@ -45,13 +45,6 @@ class Database {
                 $config['sslmode']
             );
 
-            // Neon routes connections by SNI hostname, which libpq < 14 (bundled with
-            // XAMPP) does not send. Passing the endpoint ID explicitly works on any version.
-            if (str_ends_with($config['host'], '.neon.tech')) {
-                $endpointId = preg_replace('/-pooler$/', '', explode('.', $config['host'])[0]);
-                $dsn .= ";options='endpoint={$endpointId}'";
-            }
-
             $options = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -63,10 +56,43 @@ class Database {
                 PDO::ATTR_PERSISTENT         => true,
             ];
 
-            self::$instance = self::connect($dsn, $config, $options);
+            $isNeon = str_ends_with($config['host'], '.neon.tech');
+            if ($isNeon && self::libpqLacksSni()) {
+                $dsn = self::withNeonEndpoint($dsn, $config['host']);
+            }
+
+            try {
+                self::$instance = self::connect($dsn, $config, $options);
+            } catch (PDOException $e) {
+                // Safety net: an old libpq we could not detect. Neon then asks for the
+                // endpoint ID explicitly, so retry once with it.
+                if (!$isNeon || !str_contains($e->getMessage(), 'Endpoint ID is not specified')) {
+                    throw $e;
+                }
+                self::$instance = self::connect(self::withNeonEndpoint($dsn, $config['host']), $config, $options);
+            }
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Neon routes connections by the SNI hostname, which libpq only sends from
+     * version 14 on. XAMPP bundles libpq 11; Docker/Linux images ship a modern one.
+     * Sending the endpoint option to a modern libpq is rejected by Neon (it then sees
+     * two different names), so it is only added when libpq is too old for SNI.
+     */
+    private static function libpqLacksSni(): bool {
+        if (!defined('PGSQL_LIBPQ_VERSION')) {
+            return false; // pgsql extension not loaded (e.g. Docker image) — assume a modern libpq
+        }
+        return version_compare(PGSQL_LIBPQ_VERSION, '14', '<');
+    }
+
+    /** Appends Neon's endpoint option (the host's first label, minus "-pooler") to a DSN. */
+    private static function withNeonEndpoint(string $dsn, string $host): string {
+        $endpointId = preg_replace('/-pooler$/', '', explode('.', $host)[0]);
+        return $dsn . ";options='endpoint={$endpointId}'";
     }
 
     /**
